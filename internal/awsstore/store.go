@@ -105,6 +105,40 @@ func (s *Store) CreateDirectUpload(jobID string, expiresIn time.Duration, maxByt
 	}, nil
 }
 
+func (s *Store) CreateUploadSession(job app.Job) error {
+	now := time.Now().UTC()
+	job.Status = app.StatusUploading
+	if job.CreatedAt.IsZero() {
+		job.CreatedAt = now
+	}
+	job.UpdatedAt = now
+	return s.putJob(job)
+}
+
+func (s *Store) StoreUploadSession(job app.Job, data []byte) (app.Job, error) {
+	uploadPath, err := s.SaveUpload(job.ID, data)
+	if err != nil {
+		return job, err
+	}
+	job.UploadPath = uploadPath
+	job.UpdatedAt = time.Now().UTC()
+	return job, s.putJob(job)
+}
+
+func (s *Store) FinalizeUploadSession(job app.Job) error {
+	switch job.Status {
+	case app.StatusUploading:
+	case app.StatusPending, app.StatusProcessing, app.StatusCompleted:
+		return nil
+	default:
+		return errors.New("job is not waiting for upload")
+	}
+	if job.UploadPath == "" {
+		return errors.New("upload missing")
+	}
+	return s.enqueueJob(job)
+}
+
 func (s *Store) FinalizeDirectUpload(jobID string) error {
 	job, err := s.GetJob(jobID)
 	if err != nil {
@@ -401,6 +435,15 @@ func (s *Store) putJob(job app.Job) error {
 	if job.MaxUploadBytes > 0 {
 		item["max_upload_bytes"] = &dynamodbtypes.AttributeValueMemberN{Value: strconv.FormatInt(job.MaxUploadBytes, 10)}
 	}
+	if job.UploadTokenHash != "" {
+		item["upload_token_hash"] = &dynamodbtypes.AttributeValueMemberS{Value: job.UploadTokenHash}
+	}
+	if job.ReportTokenHash != "" {
+		item["report_token_hash"] = &dynamodbtypes.AttributeValueMemberS{Value: job.ReportTokenHash}
+	}
+	if !job.UploadTokenExpiresAt.IsZero() {
+		item["upload_token_expires_at"] = &dynamodbtypes.AttributeValueMemberS{Value: job.UploadTokenExpiresAt.Format(time.RFC3339Nano)}
+	}
 	if !job.CompletedAt.IsZero() {
 		item["completed_at"] = &dynamodbtypes.AttributeValueMemberS{Value: job.CompletedAt.Format(time.RFC3339Nano)}
 	}
@@ -441,12 +484,14 @@ func jobIDFromMessage(message sqstypes.Message) (string, error) {
 
 func jobFromItem(item map[string]dynamodbtypes.AttributeValue) (app.Job, error) {
 	job := app.Job{
-		ID:             stringAttr(item, "id"),
-		Status:         app.JobStatus(stringAttr(item, "status")),
-		UploadPath:     stringAttr(item, "upload_path"),
-		MaxUploadBytes: int64Attr(item, "max_upload_bytes"),
-		ReportPath:     stringAttr(item, "report_path"),
-		Error:          stringAttr(item, "error"),
+		ID:              stringAttr(item, "id"),
+		Status:          app.JobStatus(stringAttr(item, "status")),
+		UploadPath:      stringAttr(item, "upload_path"),
+		MaxUploadBytes:  int64Attr(item, "max_upload_bytes"),
+		UploadTokenHash: stringAttr(item, "upload_token_hash"),
+		ReportTokenHash: stringAttr(item, "report_token_hash"),
+		ReportPath:      stringAttr(item, "report_path"),
+		Error:           stringAttr(item, "error"),
 	}
 	var err error
 	job.CreatedAt, err = parseTimeAttr(item, "created_at")
@@ -454,6 +499,10 @@ func jobFromItem(item map[string]dynamodbtypes.AttributeValue) (app.Job, error) 
 		return job, err
 	}
 	job.UpdatedAt, err = parseTimeAttr(item, "updated_at")
+	if err != nil {
+		return job, err
+	}
+	job.UploadTokenExpiresAt, err = parseTimeAttr(item, "upload_token_expires_at")
 	if err != nil {
 		return job, err
 	}

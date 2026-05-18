@@ -9,28 +9,50 @@
   </head>
   <body>
     <main class="shell">
-      <section class="hero">
+      <section class="hero" id="onboarding">
         <p class="eyebrow">deterministic profiler</p>
         <h1>Find out what's wasting your Claude Code tokens.</h1>
-        <p class="subhead">Upload one session. Get a deterministic performance audit.</p>
+        <p class="subhead">Paste one prompt into Claude Code. Get a deterministic performance audit.</p>
+        <ul class="proof">
+          <li>Detect context bloat</li>
+          <li>Find retry loops and wasted reads</li>
+          <li>Get an installable optimization pack</li>
+        </ul>
         <ul class="trust">
           <li>No account required</li>
           <li>Logs auto-delete after 15 minutes</li>
-          <li>Secrets redacted before reports are written</li>
-          <li>Raw transcript is never sent to an LLM</li>
+          <li>Never used for training</li>
+          <li>Secrets redacted automatically</li>
         </ul>
-      </section>
 
-      <section class="panel">
-        <form id="upload-form">
-          <label for="log">Session log</label>
-          <input id="log" name="log" type="file" required />
-          <button type="submit">Analyze My Session</button>
-        </form>
-        <pre id="status">waiting for upload</pre>
+        <section class="panel">
+          <button id="generate-session" type="button">Generate Claude Prompt</button>
+          <pre id="session-status">waiting to mint one-time token</pre>
+        </section>
+
+        <section class="panel command-panel" id="session-panel" hidden>
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">step 1</p>
+              <h2>Paste this into Claude Code</h2>
+            </div>
+            <button id="copy-prompt" type="button">Copy Prompt</button>
+          </div>
+          <pre id="claude-prompt"></pre>
+
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">step 2</p>
+              <h2>Transparent curl protocol</h2>
+            </div>
+            <button id="copy-command" type="button">Copy Command</button>
+          </div>
+          <pre id="curl-command"></pre>
+        </section>
       </section>
 
       <section class="report" id="report" hidden>
+        <p class="expiry" id="report-status">This report is visible for 15 minutes.</p>
         <div class="score">
           <span id="score">--</span>
           <small>efficiency score</small>
@@ -44,12 +66,25 @@
           <ol id="findings"></ol>
         </div>
         <div>
+          <h2>Session Timeline</h2>
+          <div id="timeline" class="timeline"></div>
+        </div>
+        <div>
+          <h2>Suggested Immediate Fixes</h2>
+          <ul id="fixes"></ul>
+        </div>
+        <div>
           <h2>Ecosystem</h2>
           <pre id="ecosystem"></pre>
         </div>
         <div>
           <h2>Security Receipt</h2>
           <pre id="receipt"></pre>
+        </div>
+        <div class="upsell">
+          <h2>Install the optimization pack generated from this analysis</h2>
+          <p>Unlock deterministic hooks, context compression helpers, slash-command coaching, CLAUDE.md recommendations, and statusline telemetry.</p>
+          <button type="button" disabled>Unlock for $50</button>
         </div>
       </section>
     </main>

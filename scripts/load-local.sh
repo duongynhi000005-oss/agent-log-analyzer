@@ -19,8 +19,24 @@ fi
 
 submit_one() {
   local index="$1"
-  curl -fsS -F "log=@${FIXTURE}" "$URL/api/jobs" |
-    sed -n 's/.*"job_id":"\([^"]*\)".*/\1/p' >"$tmpdir/job-$index"
+  local session job_id token
+  session="$(curl -fsS -X POST "$URL/api/analysis-sessions")"
+  job_id="$(echo "$session" | sed -n 's/.*"job_id":"\([^"]*\)".*/\1/p')"
+  token="$(echo "$session" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
+  if [ -z "$job_id" ] || [ -z "$token" ]; then
+    return 1
+  fi
+  curl -fsS \
+    -X PUT \
+    -H "Authorization: Bearer ${token}" \
+    -H "Content-Type: application/x-ndjson" \
+    --data-binary "@${FIXTURE}" \
+    "$URL/api/uploads/$job_id" >/dev/null
+  curl -fsS \
+    -X POST \
+    -H "Authorization: Bearer ${token}" \
+    "$URL/api/uploads/$job_id/finalize" >/dev/null
+  printf '%s\n' "$job_id" >"$tmpdir/job-$index"
 }
 
 for i in $(seq 1 "$COUNT"); do

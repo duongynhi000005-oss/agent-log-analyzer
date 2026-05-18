@@ -25,17 +25,26 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 
-JOB_ID=$(
-  curl -fsS \
-    -F "log=@${FIXTURE}" \
-    http://127.0.0.1:8080/api/jobs |
-    sed -n 's/.*"job_id":"\([^"]*\)".*/\1/p'
-)
+SESSION=$(curl -fsS -X POST http://127.0.0.1:8080/api/analysis-sessions)
+JOB_ID=$(echo "$SESSION" | sed -n 's/.*"job_id":"\([^"]*\)".*/\1/p')
+TOKEN=$(echo "$SESSION" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
 
-if [ -z "$JOB_ID" ]; then
-  echo "failed to create job"
+if [ -z "$JOB_ID" ] || [ -z "$TOKEN" ]; then
+  echo "failed to create analysis session"
   exit 1
 fi
+
+curl -fsS \
+  -X PUT \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/x-ndjson" \
+  --data-binary "@${FIXTURE}" \
+  "http://127.0.0.1:8080/api/uploads/${JOB_ID}" >/dev/null
+
+curl -fsS \
+  -X POST \
+  -H "Authorization: Bearer ${TOKEN}" \
+  "http://127.0.0.1:8080/api/uploads/${JOB_ID}/finalize" >/dev/null
 
 for _ in $(seq 1 60); do
   STATUS=$(curl -fsS "http://127.0.0.1:8080/api/jobs/$JOB_ID" | sed -n 's/.*"status":"\([^"]*\)".*/\1/p')

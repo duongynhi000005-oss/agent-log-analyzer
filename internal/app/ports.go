@@ -46,6 +46,12 @@ type DirectUploadStore interface {
 	FinalizeDirectUpload(jobID string) error
 }
 
+type TokenUploadStore interface {
+	CreateUploadSession(job Job) error
+	StoreUploadSession(job Job, data []byte) (Job, error)
+	FinalizeUploadSession(job Job) error
+}
+
 type WorkerStore interface {
 	UploadStore
 	JobQueue

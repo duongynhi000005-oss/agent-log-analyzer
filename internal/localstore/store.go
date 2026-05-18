@@ -22,6 +22,7 @@ func New(root string) (*Store, error) {
 	}
 	for _, dir := range []string{
 		filepath.Join(root, "uploads"),
+		filepath.Join(root, "jobs", "uploading"),
 		filepath.Join(root, "jobs", "pending"),
 		filepath.Join(root, "jobs", "processing"),
 		filepath.Join(root, "jobs", "completed"),
@@ -38,6 +39,42 @@ func New(root string) (*Store, error) {
 func (s *Store) SaveUpload(jobID string, data []byte) (string, error) {
 	path := filepath.Join(s.root, "uploads", jobID+".log")
 	return path, os.WriteFile(path, data, 0o600)
+}
+
+func (s *Store) CreateUploadSession(job app.Job) error {
+	job.Status = app.StatusUploading
+	now := time.Now().UTC()
+	if job.CreatedAt.IsZero() {
+		job.CreatedAt = now
+	}
+	job.UpdatedAt = now
+	return s.writeJob("uploading", job)
+}
+
+func (s *Store) StoreUploadSession(job app.Job, data []byte) (app.Job, error) {
+	uploadPath, err := s.SaveUpload(job.ID, data)
+	if err != nil {
+		return job, err
+	}
+	job.UploadPath = uploadPath
+	job.UpdatedAt = time.Now().UTC()
+	return job, s.writeJob("uploading", job)
+}
+
+func (s *Store) FinalizeUploadSession(job app.Job) error {
+	if job.Status != app.StatusUploading {
+		return nil
+	}
+	if job.UploadPath == "" {
+		return errors.New("upload missing")
+	}
+	uploadingPath := s.jobPath("uploading", job.ID)
+	job.Status = app.StatusPending
+	job.UpdatedAt = time.Now().UTC()
+	if err := s.writeJob("pending", job); err != nil {
+		return err
+	}
+	return os.Remove(uploadingPath)
 }
 
 func (s *Store) CreateJob(job app.Job) error {
@@ -108,7 +145,7 @@ func (s *Store) GetJob(id string) (app.Job, error) {
 	if !validID(id) {
 		return app.Job{}, errors.New("invalid job id")
 	}
-	for _, status := range []string{"pending", "processing", "completed", "failed"} {
+	for _, status := range []string{"uploading", "pending", "processing", "completed", "failed"} {
 		path := s.jobPath(status, id)
 		job, err := readJob(path)
 		if err == nil {
