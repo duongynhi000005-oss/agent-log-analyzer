@@ -65,3 +65,5 @@ Useful local env vars:
 Raw uploads are treated as toxic. The analyzer redacts secrets before reports are written, emits aggregate-safe ecosystem IDs only, and forbids raw prompt/tool text in operational logs.
 
 See [docs/data-retention-and-analytics.md](docs/data-retention-and-analytics.md).
+
+Cloud launch checklist: [docs/cloud-launch-todo.md](docs/cloud-launch-todo.md).
