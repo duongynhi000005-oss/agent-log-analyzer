@@ -34,6 +34,10 @@ docker push "$(terraform output -raw ecr_repository_url):latest"
 Production notes:
 
 - Pass `certificate_arn` to enable the HTTPS listener.
+- Launch hostname is `claude-code.spec-kitty.ai`.
+- DNS for `spec-kitty.ai` is managed in Namecheap, not Route 53. Add the app CNAME and ACM validation CNAME there.
+- When `certificate_arn` is set, the ALB HTTP listener redirects to HTTPS.
+- When applying only TLS, also pass the current `container_image` value to avoid unintentionally changing ECS task definitions back to `:latest`.
 - Keep `force_destroy_buckets=false` in production.
 - Put CloudFront and WAF in front of the ALB before a public launch.
 - The public upload UX is Claude/prompt/curl only. There is no browser multipart upload form.
