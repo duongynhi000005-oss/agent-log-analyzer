@@ -40,6 +40,12 @@ COMPOSE_PROJECT_NAME=claude-log-analyzer-load docker compose up --build -d
 COMPOSE_PROJECT_NAME=claude-log-analyzer-load docker compose down -v
 ```
 
+AWS-backend local smoke with LocalStack:
+
+```bash
+./scripts/smoke-aws-local.sh
+```
+
 ## Development
 
 ```bash

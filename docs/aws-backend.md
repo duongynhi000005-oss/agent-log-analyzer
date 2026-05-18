@@ -25,6 +25,12 @@ AWS_ACCESS_KEY_ID=test
 AWS_SECRET_ACCESS_KEY=test
 ```
 
+LocalStack smoke:
+
+```bash
+./scripts/smoke-aws-local.sh
+```
+
 ## Required AWS Resources
 
 - S3 quarantine upload bucket with 15 minute lifecycle deletion.
@@ -37,4 +43,3 @@ AWS_SECRET_ACCESS_KEY=test
 ## Current Status
 
 The AWS adapter compiles and is config-gated. It is not deployed and should next be exercised against LocalStack before touching real AWS.
-

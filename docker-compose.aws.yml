@@ -1,0 +1,63 @@
+services:
+  localstack:
+    image: localstack/localstack:3.8.1
+    environment:
+      SERVICES: s3,sqs,dynamodb
+      AWS_DEFAULT_REGION: us-east-1
+      DEBUG: "0"
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:4566/_localstack/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: .
+    command: claude-analyzer-api
+    environment:
+      CLAUDE_ANALYZER_ADDR: ":8080"
+      CLAUDE_ANALYZER_BACKEND: aws
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
+      CLAUDE_ANALYZER_UPLOAD_BUCKET: claude-analyzer-uploads
+      CLAUDE_ANALYZER_REPORT_BUCKET: claude-analyzer-reports
+      CLAUDE_ANALYZER_JOB_TABLE: claude-analyzer-jobs
+      CLAUDE_ANALYZER_JOB_QUEUE_URL: http://localstack:4566/000000000000/claude-analyzer-jobs
+    ports:
+      - "8081:8080"
+    depends_on:
+      localstack:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+
+  worker:
+    build: .
+    command: claude-analyzer-worker
+    environment:
+      CLAUDE_ANALYZER_BACKEND: aws
+      CLAUDE_ANALYZER_WORKER_INTERVAL: 1s
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
+      CLAUDE_ANALYZER_UPLOAD_BUCKET: claude-analyzer-uploads
+      CLAUDE_ANALYZER_REPORT_BUCKET: claude-analyzer-reports
+      CLAUDE_ANALYZER_JOB_TABLE: claude-analyzer-jobs
+      CLAUDE_ANALYZER_JOB_QUEUE_URL: http://localstack:4566/000000000000/claude-analyzer-jobs
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  localstack-data:
