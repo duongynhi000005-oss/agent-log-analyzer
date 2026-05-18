@@ -25,12 +25,12 @@
           <li>Secrets redacted automatically</li>
         </ul>
 
-        <section class="panel">
+        <section class="panel" id="launch-panel">
           <button id="generate-session" type="button">Generate Claude Prompt</button>
-          <pre id="session-status">waiting to mint one-time token</pre>
         </section>
 
         <section class="panel command-panel" id="session-panel" hidden>
+          <p class="status-line" id="session-status" hidden></p>
           <div class="panel-heading">
             <div>
               <p class="eyebrow">step 1</p>

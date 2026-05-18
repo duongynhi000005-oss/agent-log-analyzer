@@ -141,6 +141,17 @@ button:disabled {
   margin-top: 16px;
 }
 
+.status-line {
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.status-line a {
+  color: var(--green);
+}
+
 .panel-heading {
   display: flex;
   align-items: start;

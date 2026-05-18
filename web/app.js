@@ -1,5 +1,6 @@
 const onboardingEl = document.querySelector("#onboarding");
 const reportEl = document.querySelector("#report");
+const launchPanel = document.querySelector("#launch-panel");
 const generateButton = document.querySelector("#generate-session");
 const sessionPanel = document.querySelector("#session-panel");
 const sessionStatus = document.querySelector("#session-status");
@@ -25,18 +26,22 @@ if (route) {
 
 generateButton?.addEventListener("click", async () => {
   generateButton.disabled = true;
-  sessionStatus.textContent = "minting one-time upload token";
+  generateButton.textContent = "Generating prompt...";
+  setSessionStatus("", true);
   try {
     const session = await createSession();
     promptBlock.textContent = session.prompt;
     commandBlock.textContent = session.command;
     sessionPanel.hidden = false;
-    sessionStatus.textContent =
-      `token expires ${new Date(session.expires_at).toLocaleTimeString()} - paste the prompt into Claude Code`;
+    launchPanel.hidden = true;
+    setSessionStatus(
+      `Token expires ${new Date(session.expires_at).toLocaleTimeString()}. Paste Step 1 into Claude Code; this page will update automatically.`
+    );
     pollJob(session.job_id, session.report_path);
   } catch (error) {
-    sessionStatus.textContent = `could not create session: ${error.message}`;
+    setSessionStatus(`Could not create session: ${error.message}`);
     generateButton.disabled = false;
+    generateButton.textContent = "Generate Claude Prompt";
   }
 });
 
@@ -90,14 +95,14 @@ async function pollJob(jobID, reportPath) {
     const response = await fetch(`/api/jobs/${jobID}`);
     const job = await response.json();
     if (job.status === "uploading") {
-      sessionStatus.textContent = "waiting for Claude Code upload";
+      setSessionStatus("Ready. Paste Step 1 into Claude Code; this page will update after Claude uploads the session.");
     } else if (job.status === "pending" || job.status === "processing") {
-      sessionStatus.textContent = "analyzing uploaded session";
+      setSessionStatus("Analyzing uploaded session.");
     } else if (job.status === "completed") {
-      sessionStatus.innerHTML = `report ready: <a href="${reportPath}">${reportPath}</a>`;
+      setSessionStatus(`Report ready: <a href="${reportPath}">${reportPath}</a>`, false, true);
       return;
     } else if (job.status === "failed") {
-      sessionStatus.textContent = "analysis failed";
+      setSessionStatus("Analysis failed.");
       return;
     }
     await sleep(1000);
@@ -274,6 +279,16 @@ function parseReportRoute() {
 
 function setReportStatus(message) {
   document.querySelector("#report-status").textContent = message;
+}
+
+function setSessionStatus(message, hidden = false, html = false) {
+  if (!sessionStatus) return;
+  sessionStatus.hidden = hidden;
+  if (html) {
+    sessionStatus.innerHTML = message;
+  } else {
+    sessionStatus.textContent = message;
+  }
 }
 
 async function responseError(response) {
