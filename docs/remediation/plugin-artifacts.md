@@ -2,6 +2,8 @@
 
 The paid product is a generated Claude Code plugin/remediation artifact, not a longer report.
 
+The plugin should optimize Claude Code's harness, not nag on shell commands. The primary value is turning the analysis into a vetted setup plan: lean CLAUDE.md hierarchy, scoped skills, official code-intelligence plugins, language-server binaries, and trusted MCP-backed integrations.
+
 ## Contract
 
 Free scan:
@@ -27,8 +29,7 @@ Claude Code plugins use a root directory with:
 - `.claude-plugin/plugin.json`
 - `skills/<name>/SKILL.md`
 - `commands/*.md`
-- `hooks/hooks.json`
-- supporting scripts under `scripts/`
+- optional supporting files such as `WAIVER.md`
 
 The generator follows that structure so the paid artifact can be loaded as a Claude Code plugin archive. The default command uses Claude Code's session-scoped plugin loading:
 
@@ -47,10 +48,12 @@ Always generated:
 
 - `.claude-plugin/plugin.json`
 - `README.md`
-- `hooks/hooks.json`
-- `scripts/claude-analyzer-hook.py`
+- `WAIVER.md`
 - `commands/claude-analyzer-status.md`
+- `commands/claude-analyzer-tooling.md`
+- `skills/codebase-navigation/SKILL.md`
 - `skills/session-hygiene/SKILL.md`
+- `skills/tooling-setup/SKILL.md`
 
 Conditionally generated from deterministic findings:
 
@@ -58,6 +61,42 @@ Conditionally generated from deterministic findings:
 - `skills/output-budget/SKILL.md` for large shell/tool output overhead
 - `skills/retry-breaker/SKILL.md` for retry-loop behavior
 - session hygiene guidance is tuned for context growth spikes
+
+Never generate a Bash nag hook as the primary paid value. Pre-command hooks may be revisited later only for quiet telemetry or deterministic safety checks that do not interrupt normal Claude Code work.
+
+## Vetted Tooling Recommendations
+
+The generator may recommend only allowlisted, public, stable tools. Recommendations are advice plus Claude-native setup instructions; each install still requires explicit user approval.
+
+Initial allowlist:
+
+- Official Claude Code code-intelligence plugins:
+  - `typescript-lsp` with `typescript-language-server`
+  - `pyright-lsp` with `pyright-langserver`
+  - `gopls-lsp` with `gopls`
+  - `rust-analyzer-lsp` with `rust-analyzer`
+  - `php-lsp` with `intelephense`
+- Official Claude Code marketplace MCP/integration plugins when the scan already shows matching ecosystem use:
+  - `github`
+  - `notion`
+  - `linear`
+  - `sentry`
+  - `supabase`
+
+Third-party MCPs, skills, plugins, and shell tools are research candidates until separately reviewed. Unknown private tool names from user logs remain count-only and must not be copied into generated artifacts.
+
+## Liability Gate
+
+Paid checkout and plugin install UX must require explicit acknowledgment before presenting install commands:
+
+> I understand that Claude Analyzer provides deterministic analysis and vetted setup recommendations, but any installation or code change is executed by Claude Code, my package manager, or third-party tools with my approval and at my own risk.
+
+The generated plugin also includes `WAIVER.md`. Claude-facing setup prompts must tell Claude to summarize the waiver, ask for acceptance, and ask again before each installation command.
+
+## Source Notes
+
+- Anthropic's May 14, 2026 large-codebase guidance says Claude Code performance depends on the surrounding harness: CLAUDE.md, hooks, skills, plugins, MCP servers, LSP integrations, and subagents. Source: https://claude.com/blog/how-claude-code-works-in-large-codebases-best-practices-and-where-to-start
+- Anthropic's Claude Code plugin docs list official code-intelligence plugins and their required language-server binaries. They also state plugins can execute arbitrary code and should only be installed from trusted sources. Source: https://code.claude.com/docs/en/discover-plugins
 
 ## Customization Rules
 

@@ -72,16 +72,23 @@ func TestGenerateCreatesClaudePluginArtifact(t *testing.T) {
 	for _, path := range []string{
 		".claude-plugin/plugin.json",
 		"README.md",
-		"hooks/hooks.json",
-		"scripts/claude-analyzer-hook.py",
+		"WAIVER.md",
 		"skills/session-hygiene/SKILL.md",
+		"skills/codebase-navigation/SKILL.md",
+		"skills/tooling-setup/SKILL.md",
 		"skills/retrieval-hygiene/SKILL.md",
 		"skills/output-budget/SKILL.md",
 		"skills/retry-breaker/SKILL.md",
 		"commands/claude-analyzer-status.md",
+		"commands/claude-analyzer-tooling.md",
 	} {
 		if !hasFile(artifact, path) {
 			t.Fatalf("expected artifact file %s in %#v", path, artifact.Files)
+		}
+	}
+	for _, path := range []string{"hooks/hooks.json", "scripts/claude-analyzer-hook.py"} {
+		if hasFile(artifact, path) {
+			t.Fatalf("did not expect bash nag hook file %s in %#v", path, artifact.Files)
 		}
 	}
 	if !strings.Contains(artifact.Install.Command, "claude --plugin-dir") {
@@ -89,6 +96,14 @@ func TestGenerateCreatesClaudePluginArtifact(t *testing.T) {
 	}
 	if !containsCustomization(artifact, "retrieval-hygiene") || !containsCustomization(artifact, "output-budget") || !containsCustomization(artifact, "retry-breaker") {
 		t.Fatalf("missing expected customizations: %#v", artifact.Customizations)
+	}
+	for _, want := range []string{"typescript-lsp", "github"} {
+		if !containsRecommendation(artifact, want) {
+			t.Fatalf("missing vetted recommendation %s: %#v", want, artifact.VettedRecommendations)
+		}
+	}
+	if !strings.Contains(artifact.RequiredAcknowledgment, "at my own risk") {
+		t.Fatalf("expected liability acknowledgment, got %q", artifact.RequiredAcknowledgment)
 	}
 }
 
@@ -171,6 +186,15 @@ func hasFile(artifact Artifact, path string) bool {
 func containsCustomization(artifact Artifact, id string) bool {
 	for _, customization := range artifact.Customizations {
 		if customization.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+func containsRecommendation(artifact Artifact, id string) bool {
+	for _, recommendation := range artifact.VettedRecommendations {
+		if recommendation.ID == id {
 			return true
 		}
 	}

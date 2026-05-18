@@ -52,15 +52,17 @@ type Options struct {
 }
 
 type Artifact struct {
-	SchemaVersion  string          `json:"schema_version"`
-	Generator      string          `json:"generator"`
-	PluginName     string          `json:"plugin_name"`
-	PluginVersion  string          `json:"plugin_version"`
-	GeneratedAt    time.Time       `json:"generated_at"`
-	Source         SourceSummary   `json:"source"`
-	Customizations []Customization `json:"customizations"`
-	Files          []File          `json:"files"`
-	Install        Install         `json:"install"`
+	SchemaVersion          string               `json:"schema_version"`
+	Generator              string               `json:"generator"`
+	PluginName             string               `json:"plugin_name"`
+	PluginVersion          string               `json:"plugin_version"`
+	GeneratedAt            time.Time            `json:"generated_at"`
+	Source                 SourceSummary        `json:"source"`
+	Customizations         []Customization      `json:"customizations"`
+	VettedRecommendations  []ToolRecommendation `json:"vetted_recommendations"`
+	RequiredAcknowledgment string               `json:"required_acknowledgment"`
+	Files                  []File               `json:"files"`
+	Install                Install              `json:"install"`
 }
 
 type SourceSummary struct {
@@ -92,6 +94,16 @@ type File struct {
 	Content string `json:"content"`
 }
 
+type ToolRecommendation struct {
+	ID                string `json:"id"`
+	Category          string `json:"category"`
+	Why               string `json:"why"`
+	InstallCommand    string `json:"install_command"`
+	RequiredBinary    string `json:"required_binary,omitempty"`
+	BinaryInstallHint string `json:"binary_install_hint,omitempty"`
+	Source            string `json:"source"`
+}
+
 type Install struct {
 	Command          string   `json:"command"`
 	ClaudePrompt     string   `json:"claude_prompt"`
@@ -105,34 +117,38 @@ func Generate(report analyzer.Report, options Options) Artifact {
 		generatedAt = time.Now().UTC()
 	}
 	pluginName := "claude-analyzer-optimization"
-	files := baseFiles(report, pluginName)
+	recommendations := toolingRecommendations(report)
+	acknowledgment := liabilityAcknowledgment()
+	files := baseFiles(report, pluginName, recommendations, acknowledgment)
 	customizations := customizationPlan(report)
 	files = append(files, customizationFiles(customizations)...)
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
 	artifact := Artifact{
-		SchemaVersion:  "2026-05-18",
-		Generator:      "claude-log-analyzer/remediation@" + GeneratorVersion,
-		PluginName:     pluginName,
-		PluginVersion:  pluginVersion(report),
-		GeneratedAt:    generatedAt,
-		Source:         sourceSummary(report),
-		Customizations: customizations,
-		Files:          files,
+		SchemaVersion:          "2026-05-18",
+		Generator:              "claude-log-analyzer/remediation@" + GeneratorVersion,
+		PluginName:             pluginName,
+		PluginVersion:          pluginVersion(report),
+		GeneratedAt:            generatedAt,
+		Source:                 sourceSummary(report),
+		Customizations:         customizations,
+		VettedRecommendations:  recommendations,
+		RequiredAcknowledgment: acknowledgment,
+		Files:                  files,
 	}
 	artifact.Install = installInstructions(pluginName, options.ArtifactURL)
 	return artifact
 }
 
-func baseFiles(report analyzer.Report, pluginName string) []File {
+func baseFiles(report analyzer.Report, pluginName string, recommendations []ToolRecommendation, acknowledgment string) []File {
 	manifest := map[string]any{
 		"$schema":     "https://json.schemastore.org/claude-code-plugin-manifest.json",
 		"name":        pluginName,
-		"description": "Deterministic Claude Code workflow hygiene generated from a Claude Analyzer report.",
+		"description": "Deterministic Claude Code codebase-navigation and tooling recommendations generated from a Claude Analyzer report.",
 		"version":     pluginVersion(report),
 		"author": map[string]string{
 			"name": "Claude Log Analyzer",
 		},
-		"keywords": []string{"claude-code", "tokens", "context", "profiler", "workflow-hygiene"},
+		"keywords": []string{"claude-code", "tokens", "context", "profiler", "code-intelligence", "mcp"},
 	}
 	manifestJSON, _ := json.MarshalIndent(manifest, "", "  ")
 	files := []File{
@@ -147,14 +163,9 @@ func baseFiles(report analyzer.Report, pluginName string) []File {
 			Content: readme(report),
 		},
 		{
-			Path:    "hooks/hooks.json",
+			Path:    "WAIVER.md",
 			Mode:    "0644",
-			Content: hooksJSON(),
-		},
-		{
-			Path:    "scripts/claude-analyzer-hook.py",
-			Mode:    "0755",
-			Content: hookScript(),
+			Content: waiverFile(acknowledgment),
 		},
 		{
 			Path:    "commands/claude-analyzer-status.md",
@@ -162,9 +173,24 @@ func baseFiles(report analyzer.Report, pluginName string) []File {
 			Content: statusCommand(report),
 		},
 		{
+			Path:    "commands/claude-analyzer-tooling.md",
+			Mode:    "0644",
+			Content: toolingCommand(recommendations),
+		},
+		{
+			Path:    "skills/codebase-navigation/SKILL.md",
+			Mode:    "0644",
+			Content: codebaseNavigationSkill(report),
+		},
+		{
 			Path:    "skills/session-hygiene/SKILL.md",
 			Mode:    "0644",
 			Content: sessionHygieneSkill(report),
+		},
+		{
+			Path:    "skills/tooling-setup/SKILL.md",
+			Mode:    "0644",
+			Content: toolingSetupSkill(recommendations),
 		},
 	}
 	return files
@@ -189,7 +215,7 @@ func customizationPlan(report analyzer.Report) []Customization {
 			ID:       "output-budget",
 			Reason:   "Tool output consumed a high share of estimated context tokens.",
 			Evidence: evidenceFor(finding),
-			Files:    []string{"skills/output-budget/SKILL.md", "hooks/hooks.json", "scripts/claude-analyzer-hook.py"},
+			Files:    []string{"skills/output-budget/SKILL.md", "skills/tooling-setup/SKILL.md"},
 		})
 	}
 	if finding, ok := byID["retry_loop"]; ok {
@@ -216,6 +242,114 @@ func customizationPlan(report analyzer.Report) []Customization {
 			Files:    []string{"skills/session-hygiene/SKILL.md"},
 		})
 	}
+	return out
+}
+
+func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
+	seen := map[string]bool{}
+	var out []ToolRecommendation
+	add := func(rec ToolRecommendation) {
+		if rec.ID == "" || seen[rec.ID] {
+			return
+		}
+		seen[rec.ID] = true
+		out = append(out, rec)
+	}
+
+	for _, manager := range report.Ecosystem.PackageManagers {
+		switch manager {
+		case "bun", "npm", "pnpm", "yarn":
+			add(ToolRecommendation{
+				ID:                "typescript-lsp",
+				Category:          "code_intelligence",
+				Why:               "Use symbol navigation and diagnostics instead of repeated grep/read loops in JavaScript and TypeScript projects.",
+				InstallCommand:    "/plugin install typescript-lsp@claude-plugins-official",
+				RequiredBinary:    "typescript-language-server",
+				BinaryInstallHint: "npm install -g typescript typescript-language-server",
+				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
+			})
+		case "pip", "poetry", "uv":
+			add(ToolRecommendation{
+				ID:                "pyright-lsp",
+				Category:          "code_intelligence",
+				Why:               "Use Python symbol navigation and diagnostics instead of opening many candidate files.",
+				InstallCommand:    "/plugin install pyright-lsp@claude-plugins-official",
+				RequiredBinary:    "pyright-langserver",
+				BinaryInstallHint: "npm install -g pyright",
+				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
+			})
+		case "go":
+			add(ToolRecommendation{
+				ID:                "gopls-lsp",
+				Category:          "code_intelligence",
+				Why:               "Use Go definitions, references, and diagnostics before running broad searches or full test suites.",
+				InstallCommand:    "/plugin install gopls-lsp@claude-plugins-official",
+				RequiredBinary:    "gopls",
+				BinaryInstallHint: "go install golang.org/x/tools/gopls@latest",
+				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
+			})
+		case "cargo":
+			add(ToolRecommendation{
+				ID:                "rust-analyzer-lsp",
+				Category:          "code_intelligence",
+				Why:               "Use Rust symbol navigation and diagnostics to avoid context-heavy compile/search loops.",
+				InstallCommand:    "/plugin install rust-analyzer-lsp@claude-plugins-official",
+				RequiredBinary:    "rust-analyzer",
+				BinaryInstallHint: "rustup component add rust-analyzer",
+				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
+			})
+		case "composer":
+			add(ToolRecommendation{
+				ID:                "php-lsp",
+				Category:          "code_intelligence",
+				Why:               "Use PHP symbol navigation and diagnostics before broad text search across legacy code.",
+				InstallCommand:    "/plugin install php-lsp@claude-plugins-official",
+				RequiredBinary:    "intelephense",
+				BinaryInstallHint: "npm install -g intelephense",
+				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
+			})
+		}
+	}
+
+	if report.Ecosystem.VersionControl == "git" || containsString(report.Ecosystem.MCPServersKnown, "github") {
+		add(ToolRecommendation{
+			ID:             "github",
+			Category:       "mcp_integration",
+			Why:            "Fetch structured issue and PR context without pasting browser output or long terminal dumps into Claude.",
+			InstallCommand: "/plugin install github@claude-plugins-official",
+			Source:         "Anthropic Claude Code official marketplace external integrations documentation",
+		})
+	}
+	for _, plugin := range []struct {
+		id  string
+		why string
+	}{
+		{"notion", "Pull structured project documentation directly instead of repeatedly searching or pasting docs."},
+		{"linear", "Pull structured ticket context directly instead of copying long issue text into the session."},
+		{"sentry", "Inspect structured errors and traces instead of dumping logs into context."},
+		{"supabase", "Use a configured infrastructure integration for project metadata instead of ad hoc shell/API output."},
+	} {
+		if containsString(report.Ecosystem.MCPServersKnown, plugin.id) || containsString(report.Ecosystem.KnownPlugins, plugin.id) {
+			add(ToolRecommendation{
+				ID:             plugin.id,
+				Category:       "mcp_integration",
+				Why:            plugin.why,
+				InstallCommand: "/plugin install " + plugin.id + "@claude-plugins-official",
+				Source:         "Anthropic Claude Code official marketplace external integrations documentation",
+			})
+		}
+	}
+
+	if len(out) == 0 {
+		add(ToolRecommendation{
+			ID:             "inspect-language-stack",
+			Category:       "manual_review",
+			Why:            "No high-confidence language-server recommendation was inferred from the sanitized aggregate report. Inspect package manifests before installing code intelligence.",
+			InstallCommand: "Ask Claude to inspect package manifests and recommend only official code-intelligence plugins with matching binaries.",
+			Source:         "Claude Analyzer deterministic fallback",
+		})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out
 }
 
@@ -311,6 +445,15 @@ func safeKnownEcosystem(ecosystem analyzer.Ecosystem) []string {
 	return out
 }
 
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
+}
+
 func safePublicID(prefix, value string) bool {
 	return safeIdentifier(value) && publicEcosystemIDs[prefix][value]
 }
@@ -358,65 +501,130 @@ Generated from deterministic Claude Analyzer metrics.
 - Raw transcript included: no
 - Unknown private ecosystem names included: no
 
-Use the included skills and hooks to keep Claude Code sessions scoped, reduce repeated reads, cap noisy output, and break retry loops.
+Use the included skills and commands to make the codebase easier for Claude Code to navigate: lean CLAUDE.md layers, scoped skills, official code-intelligence plugins, and vetted MCP integrations. This plugin does not nag on Bash commands.
 `, report.AggregateEvent.ScoreBucket, report.AggregateEvent.WasteBucket)
 }
 
-func hooksJSON() string {
-	return `{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/claude-analyzer-hook.py\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ]
-  }
-}
+func waiverFile(acknowledgment string) string {
+	return `# Required Acknowledgment
+
+` + acknowledgment + `
+
+This remediation pack may ask Claude Code to recommend or install third-party software, including language servers, Claude Code plugins, and MCP-backed integrations. Those tools can execute code or access local/project data according to their own permissions.
+
+Before installing anything:
+
+1. Review every recommended tool and its source.
+2. Confirm the command matches your operating system and package manager.
+3. Confirm you have backups or version control for any repository Claude may modify.
+4. Approve each installation separately.
+5. Stop if Claude proposes an unvetted source, a destructive command, or a credential change you do not understand.
+
+Claude Analyzer is not responsible for damage, data loss, credential exposure, billing impact, or other consequences caused by Claude Code, recommended tools, package managers, language servers, plugins, MCP servers, or user-approved commands.
 `
 }
 
-func hookScript() string {
-	return `#!/usr/bin/env python3
-import json
-import re
-import sys
+func toolingCommand(recommendations []ToolRecommendation) string {
+	return `---
+description: Review the generated code-intelligence and MCP setup recommendations.
+---
 
-try:
-    payload = json.load(sys.stdin)
-except Exception:
-    sys.exit(0)
+# Claude Analyzer Tooling Setup
 
-tool_input = payload.get("tool_input") or {}
-command = tool_input.get("command") or ""
-if not command:
-    sys.exit(0)
+Read WAIVER.md first. Do not install anything until the user explicitly acknowledges the waiver and approves each command.
 
-warnings = []
-if re.search(r"\b(cat|sed|nl|bat)\b", command) and not re.search(r"\b(head|tail|rg|grep|awk|jq)\b", command):
-    warnings.append("This looks like a broad file read. Prefer targeted rg/head/tail output or summarize the file state once.")
-if re.search(r"\b(find|ls -R|tree)\b", command):
-    warnings.append("This command can create large output. Prefer rg --files with a narrow pattern.")
-if re.search(r"\b(go test|npm test|pytest|cargo test)\b", command) and not re.search(r"\b(2>&1|tail|head|tee|--quiet|-q)\b", command):
-    warnings.append("Test output can bloat context. Pipe to tail/head or run a narrower test first.")
+Recommended actions:
 
-if not warnings:
-    sys.exit(0)
+` + recommendationMarkdown(recommendations) + `
 
-print(json.dumps({
-    "hookSpecificOutput": {
-        "hookEventName": "PreToolUse",
-        "permissionDecision": "ask",
-        "permissionDecisionReason": "Claude Analyzer: " + " ".join(warnings)
-    }
-}))
+Procedure:
+
+1. Inspect the repository language stack and confirm each recommendation still applies.
+2. Prefer official Claude Code marketplace plugins and documented language-server binaries.
+3. Ask before installing each binary or plugin.
+4. After installing plugins, run /reload-plugins.
+5. If any tool source differs from the recommendation, stop and ask the user.
 `
+}
+
+func codebaseNavigationSkill(report analyzer.Report) string {
+	return fmt.Sprintf(`---
+description: Use when Claude needs to understand a large or unfamiliar codebase without wasting context.
+---
+
+# Codebase Navigation
+
+This skill follows Anthropic's large-codebase guidance: make the codebase navigable before adding more automation.
+
+Rules:
+
+1. Keep root CLAUDE.md lean: architecture map, critical commands, and gotchas only.
+2. Prefer subdirectory CLAUDE.md files for local build/test conventions.
+3. Start Claude in the relevant subdirectory when the task has a clear scope.
+4. Build or update a concise codebase map when top-level folders are not self-explanatory.
+5. Prefer LSP/code-intelligence lookups for definitions and references before broad grep/read loops.
+6. Use MCP integrations only for structured external context; do not paste large external pages or logs into the session.
+
+Generated score bucket: %s
+Generated waste bucket: %s
+`, report.AggregateEvent.ScoreBucket, report.AggregateEvent.WasteBucket)
+}
+
+func toolingSetupSkill(recommendations []ToolRecommendation) string {
+	return `---
+description: Use when setting up vetted language servers, Claude Code code-intelligence plugins, or MCP integrations.
+---
+
+# Tooling Setup
+
+Install only with explicit user approval.
+
+` + recommendationMarkdown(recommendations) + `
+
+Installation discipline:
+
+1. Read WAIVER.md to the user in summary form and get explicit acceptance before proceeding.
+2. Verify the current OS, package manager, and existing binaries.
+3. Install language-server binaries before the matching code-intelligence plugin.
+4. Use official Claude Code marketplace plugins where listed.
+5. Run /reload-plugins after plugin installation.
+6. If a recommended binary is already installed, do not reinstall it.
+7. If a repository has custom tooling, prefer its checked-in setup docs over generic install commands.
+`
+}
+
+func recommendationMarkdown(recommendations []ToolRecommendation) string {
+	var b strings.Builder
+	for _, rec := range recommendations {
+		b.WriteString("- ")
+		b.WriteString(rec.ID)
+		b.WriteString(" (")
+		b.WriteString(rec.Category)
+		b.WriteString("): ")
+		b.WriteString(rec.Why)
+		b.WriteString("\n")
+		b.WriteString("  Install: `")
+		b.WriteString(rec.InstallCommand)
+		b.WriteString("`\n")
+		if rec.RequiredBinary != "" {
+			b.WriteString("  Required binary: `")
+			b.WriteString(rec.RequiredBinary)
+			b.WriteString("`\n")
+		}
+		if rec.BinaryInstallHint != "" {
+			b.WriteString("  Binary install hint: `")
+			b.WriteString(rec.BinaryInstallHint)
+			b.WriteString("`\n")
+		}
+		b.WriteString("  Source: ")
+		b.WriteString(rec.Source)
+		b.WriteString("\n")
+	}
+	return b.String()
+}
+
+func liabilityAcknowledgment() string {
+	return "I understand that Claude Analyzer provides deterministic analysis and vetted setup recommendations, but any installation or code change is executed by Claude Code, my package manager, or third-party tools with my approval and at my own risk."
 }
 
 func statusCommand(report analyzer.Report) string {
