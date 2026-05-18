@@ -285,6 +285,10 @@ Acceptance:
 - [ ] Define paid artifact TTL separately from free report TTL.
 - [ ] Implement Checkout flow.
 - [ ] Generate optimization pack artifact after successful payment.
+- [x] Define deterministic Claude plugin artifact contract.
+- [x] Add initial plugin artifact generator and archive safety tests.
+- [ ] Wire paid scan aggregate metrics into plugin generation.
+- [ ] Render short-lived install page with plugin commands.
 - [ ] Store paid artifact in separate prefix/bucket with short TTL.
 - [ ] Add receipt/support email.
 - [ ] Add refund/support process.

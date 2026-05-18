@@ -23,6 +23,8 @@ There is intentionally no browser upload form. Claude Code logs live under `~/.c
 
 The paid scan will use a separate paid token and a different command parameter set: `CLAUDE_ANALYZER_SCAN_LIMIT=100`, `limit=100`, and `X-Scan-Limit: 100`. That command uploads a tar/gzip bundle of the 100 most recent Claude Code JSONL logs after Stripe unlock.
 
+Paid delivery contract: [docs/remediation/plugin-artifacts.md](docs/remediation/plugin-artifacts.md).
+
 ## Local Runthrough
 
 ```bash
