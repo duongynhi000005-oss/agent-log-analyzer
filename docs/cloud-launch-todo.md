@@ -186,12 +186,15 @@ The public upload UX is Claude/prompt/curl only. There is no browser file upload
 - [x] Enforce paid scan upload contract: `limit=100` and `X-Scan-Limit: 100`.
 - [x] Validate paid tar/gzip bundles for max 100 JSONL files and hostile archive entries.
 - [x] Add worker aggregate analysis path for paid bundles.
-- [ ] Add the Stripe-gated paid-session endpoint that creates paid-token jobs.
-- [ ] Connect paid command generation to the Stripe-created session.
+- [x] Add local-only waiver-gated paid-session endpoint for Docker end-to-end testing.
+- [x] Generate the paid Claude/curl prompt from the paid-token session.
+- [ ] Replace local-only paid-session enablement with Stripe checkout/webhook gating.
+- [ ] Connect Stripe success handling to paid-token session creation.
 
 Acceptance:
 
 - [x] Browser upload and direct-upload routes are not mounted.
+- [x] Docker smoke covers free one-log upload and paid 100-log bundle upload.
 - [ ] API upload tasks autoscale separately enough to survive Product Hunt/HN upload spikes.
 
 ## 8. Observability Without Privacy Leakage

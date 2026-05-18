@@ -68,4 +68,63 @@ if echo "$REPORT" | grep -q 'sk-ant-'; then
   exit 1
 fi
 
-echo "smoke ok: $JOB_ID"
+PAID_SESSION=$(curl -fsS \
+  -X POST \
+  -H "Content-Type: application/json" \
+  --data '{"waiver_accepted":true,"acknowledgment":"I accept at my own risk"}' \
+  http://127.0.0.1:8080/api/paid-sessions)
+PAID_JOB_ID=$(echo "$PAID_SESSION" | sed -n 's/.*"job_id":"\([^"]*\)".*/\1/p')
+PAID_TOKEN=$(echo "$PAID_SESSION" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+PAID_REPORT_PATH=$(echo "$PAID_SESSION" | sed -n 's/.*"report_path":"\([^"]*\)".*/\1/p')
+
+if [ -z "$PAID_JOB_ID" ] || [ -z "$PAID_TOKEN" ] || [ -z "$PAID_REPORT_PATH" ]; then
+  echo "failed to create paid session"
+  exit 1
+fi
+
+PAID_ROOT="$(mktemp -d)"
+mkdir -p "$PAID_ROOT/.claude/projects/smoke"
+cp "$FIXTURE" "$PAID_ROOT/.claude/projects/smoke/session-1.jsonl"
+cp "$FIXTURE" "$PAID_ROOT/.claude/projects/smoke/session-2.jsonl"
+printf '%s\n%s\n' \
+  ".claude/projects/smoke/session-1.jsonl" \
+  ".claude/projects/smoke/session-2.jsonl" \
+  > "$PAID_ROOT/list.txt"
+tar -C "$PAID_ROOT" -czf "$PAID_ROOT/bundle.tar.gz" -T "$PAID_ROOT/list.txt"
+
+curl -fsS \
+  -X PUT \
+  -H "Authorization: Bearer ${PAID_TOKEN}" \
+  -H "Content-Type: application/gzip" \
+  -H "X-Scan-Limit: 100" \
+  --data-binary "@$PAID_ROOT/bundle.tar.gz" \
+  "http://127.0.0.1:8080/api/paid-uploads/${PAID_JOB_ID}?limit=100" >/dev/null
+
+curl -fsS \
+  -X POST \
+  -H "Authorization: Bearer ${PAID_TOKEN}" \
+  "http://127.0.0.1:8080/api/paid-uploads/${PAID_JOB_ID}/finalize" >/dev/null
+
+for _ in $(seq 1 60); do
+  PAID_STATUS=$(curl -fsS "http://127.0.0.1:8080/api/jobs/$PAID_JOB_ID" | sed -n 's/.*"status":"\([^"]*\)".*/\1/p')
+  if [ "$PAID_STATUS" = "completed" ]; then
+    break
+  fi
+  if [ "$PAID_STATUS" = "failed" ]; then
+    curl -fsS "http://127.0.0.1:8080/api/jobs/$PAID_JOB_ID"
+    exit 1
+  fi
+  sleep 1
+done
+
+PAID_REPORT_API=$(echo "$PAID_REPORT_PATH" | sed 's#^/r/#/api/public-reports/#')
+PAID_REPORT=$(curl -fsS "http://127.0.0.1:8080$PAID_REPORT_API")
+echo "$PAID_REPORT" | grep -q '"parser_type":"paid_bundle"'
+PAID_SESSION_COUNT=$(echo "$PAID_REPORT" | sed -n 's/.*"session_count":\([0-9][0-9]*\).*/\1/p')
+if [ -z "$PAID_SESSION_COUNT" ] || [ "$PAID_SESSION_COUNT" -lt 2 ]; then
+  echo "Expected paid scan to report at least 2 parsed sessions, got: ${PAID_SESSION_COUNT:-missing}" >&2
+  exit 1
+fi
+echo "$PAID_REPORT" | grep -q '"raw_transcript_sent_to_llm":false'
+
+echo "smoke ok: $JOB_ID paid: $PAID_JOB_ID"

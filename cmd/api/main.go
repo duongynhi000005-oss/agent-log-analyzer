@@ -36,6 +36,11 @@ type analysisSessionResponse struct {
 	Prompt       string    `json:"prompt"`
 }
 
+type paidSessionRequest struct {
+	WaiverAccepted bool   `json:"waiver_accepted"`
+	Acknowledgment string `json:"acknowledgment"`
+}
+
 func main() {
 	addr := getenv("CLAUDE_ANALYZER_ADDR", ":8080")
 	store, err := backend.NewAPIStore()
@@ -58,6 +63,7 @@ func buildMux(store app.APIStore) http.Handler {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 	mux.HandleFunc("POST /api/analysis-sessions", createAnalysisSessionHandler(store, maxQueueDepth(), uploadTokenTTL()))
+	mux.HandleFunc("POST /api/paid-sessions", createPaidSessionHandler(store, uploadTokenTTL()))
 	mux.HandleFunc("PUT /api/uploads/{id}", tokenUploadHandler(store))
 	mux.HandleFunc("POST /api/uploads/{id}/finalize", finalizeTokenUploadHandler(store))
 	mux.HandleFunc("PUT /api/paid-uploads/{id}", paidBundleUploadHandler(store))
@@ -67,6 +73,74 @@ func buildMux(store app.APIStore) http.Handler {
 	mux.HandleFunc("GET /api/jobs/{id}", getJobHandler(store))
 	mux.Handle("/", http.FileServer(http.Dir("web")))
 	return mux
+}
+
+func createPaidSessionHandler(store app.APIStore, expiresIn time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !localPaidSessionsEnabled() {
+			writeError(w, http.StatusPaymentRequired, "paid checkout is not configured")
+			return
+		}
+		sessionStore, ok := store.(app.TokenUploadStore)
+		if !ok {
+			writeError(w, http.StatusNotImplemented, "token upload unavailable")
+			return
+		}
+		var request paidSessionRequest
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid paid session request")
+			return
+		}
+		if !request.WaiverAccepted || !strings.Contains(strings.ToLower(request.Acknowledgment), "own risk") {
+			writeError(w, http.StatusBadRequest, "waiver acknowledgment required")
+			return
+		}
+		uploadToken, err := newToken()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "could not create upload token")
+			return
+		}
+		reportToken, err := newToken()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "could not create report token")
+			return
+		}
+		now := time.Now().UTC()
+		jobID := app.NewJobID()
+		job := app.Job{
+			ID:                   jobID,
+			Status:               app.StatusUploading,
+			ScanType:             app.ScanTypePaidBundle,
+			MaxUploadBytes:       maxPaidUploadBytes,
+			UploadTokenHash:      tokenHash(uploadToken),
+			ReportTokenHash:      tokenHash(reportToken),
+			UploadTokenExpiresAt: now.Add(expiresIn),
+			WaiverAcceptedAt:     now,
+			CreatedAt:            now,
+			UpdatedAt:            now,
+		}
+		if err := sessionStore.CreateUploadSession(job); err != nil {
+			writeError(w, http.StatusInternalServerError, "could not create paid scan session")
+			return
+		}
+		baseURL := publicBaseURL(r)
+		uploadPath := "/api/paid-uploads/" + jobID
+		finalizePath := uploadPath + "/finalize"
+		reportPath := "/r/" + jobID + "/" + reportToken
+		response := analysisSessionResponse{
+			JobID:        jobID,
+			Token:        uploadToken,
+			UploadPath:   uploadPath,
+			FinalizePath: finalizePath,
+			ReportPath:   reportPath,
+			ReportURL:    baseURL + reportPath,
+			ExpiresAt:    job.UploadTokenExpiresAt,
+			MaxBytes:     maxPaidUploadBytes,
+		}
+		response.Command = paidShellCommand(baseURL, response)
+		response.Prompt = paidClaudePrompt(response.Command)
+		writeJSON(w, http.StatusCreated, response)
+	}
 }
 
 func createAnalysisSessionHandler(store app.APIStore, maxDepth int, expiresIn time.Duration) http.HandlerFunc {
@@ -445,8 +519,48 @@ func shellCommand(baseURL string, response analysisSessionResponse, reportToken 
 	}, "\n")
 }
 
+func paidShellCommand(baseURL string, response analysisSessionResponse) string {
+	uploadURL := baseURL + response.UploadPath + "?limit=100"
+	finalizeURL := baseURL + response.FinalizePath
+	return strings.Join([]string{
+		`BUNDLE="$(mktemp -t claude-analyzer-paid.XXXXXX.tar.gz)"`,
+		`LIST="$(mktemp -t claude-analyzer-paid.XXXXXX.txt)"`,
+		`python3 - <<'PY' > "$LIST"`,
+		`from pathlib import Path`,
+		`home = Path.home()`,
+		`logs = sorted(home.glob(".claude/projects/**/*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)[:100]`,
+		`if not logs:`,
+		`    raise SystemExit("No Claude Code JSONL logs found under ~/.claude/projects")`,
+		`for path in logs:`,
+		`    print(path.relative_to(home))`,
+		`PY`,
+		`COUNT="$(wc -l < "$LIST" | tr -d ' ')"`,
+		`tar -C "$HOME" -czf "$BUNDLE" -T "$LIST"`,
+		`BYTES="$(wc -c < "$BUNDLE" | tr -d ' ')"`,
+		`echo "Claude logs selected: $COUNT most recent JSONL files"`,
+		`echo "Bundle bytes: $BYTES"`,
+		`printf 'Upload these logs for paid deterministic analysis? [y/N] '`,
+		`read -r OK`,
+		`case "$OK" in y|Y|yes|YES) ;; *) echo "Upload cancelled"; exit 1 ;; esac`,
+		`curl -fsS -X PUT ` + shellQuote(uploadURL) + ` \`,
+		`  -H ` + shellQuote("Authorization: Bearer "+response.Token) + ` \`,
+		`  -H 'Content-Type: application/gzip' \`,
+		`  -H 'X-Scan-Limit: 100' \`,
+		`  --data-binary "@$BUNDLE"`,
+		`curl -fsS -X POST ` + shellQuote(finalizeURL) + ` \`,
+		`  -H ` + shellQuote("Authorization: Bearer "+response.Token),
+		`echo`,
+		`echo "Paid report: ` + response.ReportURL + `"`,
+		`(open ` + shellQuote(response.ReportURL) + ` 2>/dev/null || xdg-open ` + shellQuote(response.ReportURL) + ` 2>/dev/null || true)`,
+	}, "\n")
+}
+
 func claudePrompt(command string) string {
 	return "Find my most recent Claude Code JSONL session log, show me the path and byte size, ask for my approval, then run this exact shell command to upload one log for deterministic analysis. Do not print the log contents.\n\n```sh\n" + command + "\n```"
+}
+
+func paidClaudePrompt(command string) string {
+	return "Find my 100 most recent Claude Code JSONL session logs under ~/.claude/projects, show me only the count and total bundle size, ask for my approval, then run this exact shell command to upload the bundle for paid deterministic analysis. Do not print log contents or file paths.\n\n```sh\n" + command + "\n```"
 }
 
 func shellQuote(value string) string {
@@ -481,4 +595,9 @@ func maxQueueDepth() int {
 		return 0
 	}
 	return value
+}
+
+func localPaidSessionsEnabled() bool {
+	value := strings.ToLower(os.Getenv("CLAUDE_ANALYZER_ENABLE_LOCAL_PAID_SESSIONS"))
+	return value == "1" || value == "true" || value == "yes"
 }

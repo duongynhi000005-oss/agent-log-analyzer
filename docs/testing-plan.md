@@ -59,6 +59,14 @@ CLAUDE_ANALYZER_URL=http://<alb-dns> ./scripts/load-local.sh 25
 
 The load command uses fake-secret fixtures by default and exercises analysis-session creation, tokenized curl upload, finalize, worker processing, and tokenized report fetch. It prints only aggregate pass/fail status and checks that raw fake secrets do not leak into reports.
 
+Full Docker smoke:
+
+```bash
+./scripts/smoke-local.sh
+```
+
+This covers the free one-log Claude/curl path and the local waiver-gated paid bundle path with a paid token, `limit=100`, `X-Scan-Limit: 100`, tar/gzip upload, finalize, aggregate report fetch, and raw-transcript leak checks.
+
 Production acceptance target before launch:
 
 ```text

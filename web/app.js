@@ -7,6 +7,11 @@ const promptBlock = document.querySelector("#claude-prompt");
 const commandBlock = document.querySelector("#curl-command");
 const copyPromptButton = document.querySelector("#copy-prompt");
 const copyCommandButton = document.querySelector("#copy-command");
+const unlockPaidButton = document.querySelector("#unlock-paid");
+const waiverAccepted = document.querySelector("#waiver-accepted");
+const paidStatus = document.querySelector("#paid-status");
+const paidCommand = document.querySelector("#paid-command");
+const copyPaidCommandButton = document.querySelector("#copy-paid-command");
 
 const route = parseReportRoute();
 
@@ -37,9 +42,43 @@ generateButton?.addEventListener("click", async () => {
 
 copyPromptButton?.addEventListener("click", () => copyText(promptBlock.textContent, copyPromptButton));
 copyCommandButton?.addEventListener("click", () => copyText(commandBlock.textContent, copyCommandButton));
+copyPaidCommandButton?.addEventListener("click", () => copyText(paidCommand.textContent, copyPaidCommandButton));
+
+unlockPaidButton?.addEventListener("click", async () => {
+  unlockPaidButton.disabled = true;
+  paidStatus.textContent = "creating waiver-gated paid scan token";
+  try {
+    const session = await createPaidSession();
+    paidCommand.textContent = session.prompt;
+    copyPaidCommandButton.hidden = false;
+    paidStatus.textContent =
+      `paid token expires ${new Date(session.expires_at).toLocaleTimeString()} - paste the prompt into Claude Code`;
+    pollPaidJob(session.job_id, session.report_path);
+  } catch (error) {
+    paidStatus.textContent = `could not unlock paid scan: ${error.message}`;
+    unlockPaidButton.disabled = false;
+  }
+});
 
 async function createSession() {
   const response = await fetch("/api/analysis-sessions", { method: "POST" });
+  if (!response.ok) {
+    throw await responseError(response);
+  }
+  return response.json();
+}
+
+async function createPaidSession() {
+  const acknowledgment =
+    "I understand that Claude Analyzer provides deterministic analysis and vetted setup recommendations, but any installation or code change is executed by Claude Code, my package manager, or third-party tools with my approval and at my own risk.";
+  const response = await fetch("/api/paid-sessions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      waiver_accepted: Boolean(waiverAccepted?.checked),
+      acknowledgment,
+    }),
+  });
   if (!response.ok) {
     throw await responseError(response);
   }
@@ -59,6 +98,25 @@ async function pollJob(jobID, reportPath) {
       return;
     } else if (job.status === "failed") {
       sessionStatus.textContent = "analysis failed";
+      return;
+    }
+    await sleep(1000);
+  }
+}
+
+async function pollPaidJob(jobID, reportPath) {
+  for (;;) {
+    const response = await fetch(`/api/jobs/${jobID}`);
+    const job = await response.json();
+    if (job.status === "uploading") {
+      paidStatus.textContent = "waiting for Claude Code paid bundle upload";
+    } else if (job.status === "pending" || job.status === "processing") {
+      paidStatus.textContent = "analyzing paid scan bundle";
+    } else if (job.status === "completed") {
+      paidStatus.innerHTML = `paid report ready: <a href="${reportPath}">${reportPath}</a>`;
+      return;
+    } else if (job.status === "failed") {
+      paidStatus.textContent = "paid analysis failed";
       return;
     }
     await sleep(1000);
@@ -178,31 +236,7 @@ function findingEvidence(evidence) {
 function renderPaidCommandPreview() {
   const target = document.querySelector("#paid-command");
   if (!target) return;
-  target.textContent = [
-    "# Generated after Stripe unlock with a separate paid token.",
-    "CLAUDE_ANALYZER_SCAN_LIMIT=100",
-    "PAID_TOKEN=\"<paid-upload-token>\"",
-    "PAID_SESSION=\"<paid-session-id>\"",
-    "BUNDLE=\"$(mktemp -t claude-analyzer-logs.XXXXXX.tar.gz)\"",
-    "LIST=\"$(mktemp -t claude-analyzer-logs.XXXXXX.txt)\"",
-    "python3 - <<'PY' > \"$LIST\"",
-    "from pathlib import Path",
-    "home = Path.home()",
-    "logs = sorted(home.glob('.claude/projects/**/*.jsonl'), key=lambda p: p.stat().st_mtime, reverse=True)[:100]",
-    "if not logs:",
-    "    raise SystemExit('No Claude Code JSONL logs found under ~/.claude/projects')",
-    "for path in logs:",
-    "    print(path.relative_to(home))",
-    "PY",
-    "tar -C \"$HOME\" -czf \"$BUNDLE\" -T \"$LIST\"",
-    `curl -fsS -X PUT '${window.location.origin}/api/paid-uploads/$PAID_SESSION?limit=100' \\`,
-    "  -H \"Authorization: Bearer $PAID_TOKEN\" \\",
-    "  -H 'Content-Type: application/gzip' \\",
-    "  -H 'X-Scan-Limit: 100' \\",
-    "  --data-binary \"@$BUNDLE\"",
-    `curl -fsS -X POST '${window.location.origin}/api/paid-uploads/$PAID_SESSION/finalize' \\`,
-    "  -H \"Authorization: Bearer $PAID_TOKEN\"",
-  ].join("\n");
+  target.textContent = "Accept the waiver and unlock to generate a one-time paid upload prompt.";
 }
 
 function parseReportRoute() {

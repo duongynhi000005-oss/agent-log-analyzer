@@ -27,6 +27,7 @@ type Job struct {
 	UploadTokenHash      string    `json:"upload_token_hash,omitempty"`
 	ReportTokenHash      string    `json:"report_token_hash,omitempty"`
 	UploadTokenExpiresAt time.Time `json:"upload_token_expires_at,omitempty"`
+	WaiverAcceptedAt     time.Time `json:"waiver_accepted_at,omitempty"`
 	ReportPath           string    `json:"report_path,omitempty"`
 	Error                string    `json:"error,omitempty"`
 	QueueReceipt         string    `json:"-"`

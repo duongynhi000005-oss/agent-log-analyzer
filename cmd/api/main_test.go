@@ -249,6 +249,59 @@ func TestPaidBundleUploadRequiresPaidTokenAndLimit(t *testing.T) {
 	}
 }
 
+func TestCreatePaidSessionRequiresLocalEnablementAndWaiver(t *testing.T) {
+	store, err := localstore.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	disabledReq := httptest.NewRequest(http.MethodPost, "/api/paid-sessions", strings.NewReader(`{"waiver_accepted":true,"acknowledgment":"at my own risk"}`))
+	disabledRec := httptest.NewRecorder()
+	createPaidSessionHandler(store, 15*time.Minute).ServeHTTP(disabledRec, disabledReq)
+	if disabledRec.Code != http.StatusPaymentRequired {
+		t.Fatalf("expected disabled paid session status 402, got %d: %s", disabledRec.Code, disabledRec.Body.String())
+	}
+
+	t.Setenv("CLAUDE_ANALYZER_ENABLE_LOCAL_PAID_SESSIONS", "true")
+	missingWaiverReq := httptest.NewRequest(http.MethodPost, "/api/paid-sessions", strings.NewReader(`{"waiver_accepted":false}`))
+	missingWaiverRec := httptest.NewRecorder()
+	createPaidSessionHandler(store, 15*time.Minute).ServeHTTP(missingWaiverRec, missingWaiverReq)
+	if missingWaiverRec.Code != http.StatusBadRequest {
+		t.Fatalf("expected missing waiver status 400, got %d: %s", missingWaiverRec.Code, missingWaiverRec.Body.String())
+	}
+}
+
+func TestCreatePaidSessionReturnsPaidBundleCommand(t *testing.T) {
+	t.Setenv("CLAUDE_ANALYZER_ENABLE_LOCAL_PAID_SESSIONS", "true")
+	store, err := localstore.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/paid-sessions", strings.NewReader(`{"waiver_accepted":true,"acknowledgment":"I accept at my own risk"}`))
+	req.Host = "example.test"
+	rec := httptest.NewRecorder()
+
+	createPaidSessionHandler(store, 15*time.Minute).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected paid session status 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var session analysisSessionResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &session); err != nil {
+		t.Fatalf("response is not valid session JSON: %v", err)
+	}
+	if !strings.Contains(session.UploadPath, "/api/paid-uploads/") || !strings.Contains(session.Command, "limit=100") || !strings.Contains(session.Command, "X-Scan-Limit: 100") {
+		t.Fatalf("expected paid bundle command, got %#v", session)
+	}
+	job, err := store.GetJob(session.JobID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if job.ScanType != app.ScanTypePaidBundle || job.WaiverAcceptedAt.IsZero() {
+		t.Fatalf("expected waiver-gated paid bundle job, got %#v", job)
+	}
+}
+
 func TestPaidBundleUploadRejectsFreeToken(t *testing.T) {
 	store, err := localstore.New(t.TempDir())
 	if err != nil {

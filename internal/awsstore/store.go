@@ -363,6 +363,9 @@ func (s *Store) putJob(job app.Job) error {
 	if !job.UploadTokenExpiresAt.IsZero() {
 		item["upload_token_expires_at"] = &dynamodbtypes.AttributeValueMemberS{Value: job.UploadTokenExpiresAt.Format(time.RFC3339Nano)}
 	}
+	if !job.WaiverAcceptedAt.IsZero() {
+		item["waiver_accepted_at"] = &dynamodbtypes.AttributeValueMemberS{Value: job.WaiverAcceptedAt.Format(time.RFC3339Nano)}
+	}
 	if !job.CompletedAt.IsZero() {
 		item["completed_at"] = &dynamodbtypes.AttributeValueMemberS{Value: job.CompletedAt.Format(time.RFC3339Nano)}
 	}
@@ -423,6 +426,10 @@ func jobFromItem(item map[string]dynamodbtypes.AttributeValue) (app.Job, error) 
 		return job, err
 	}
 	job.UploadTokenExpiresAt, err = parseTimeAttr(item, "upload_token_expires_at")
+	if err != nil {
+		return job, err
+	}
+	job.WaiverAcceptedAt, err = parseTimeAttr(item, "waiver_accepted_at")
 	if err != nil {
 		return job, err
 	}
