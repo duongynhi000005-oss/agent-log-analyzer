@@ -21,3 +21,4 @@ Rules:
 
 The current registry is intentionally public-tool-only. Private company tool names remain outside aggregate analytics unless an explicit opt-in path is added later.
 
+Candidate discovery tooling lives in `cmd/signature-research` and `scripts/research-signatures.sh`. It crawls public registries/search APIs and writes review-only output to `.data/signature-candidates.json`; it does not update the production registry automatically.

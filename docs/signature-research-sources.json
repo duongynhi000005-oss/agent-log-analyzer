@@ -1,0 +1,47 @@
+{
+  "sources": [
+    {
+      "id": "official-mcp-registry",
+      "kind": "mcp_registry",
+      "url": "https://registry.modelcontextprotocol.io/v0/servers?limit=100",
+      "category": "mcp_servers",
+      "max_pages": 5
+    },
+    {
+      "id": "npm-mcp-server-search",
+      "kind": "npm_search",
+      "url": "https://registry.npmjs.org/-/v1/search?text=mcp%20server&size=100",
+      "category": "mcp_servers"
+    },
+    {
+      "id": "npm-claude-code-search",
+      "kind": "npm_search",
+      "url": "https://registry.npmjs.org/-/v1/search?text=claude%20code&size=100",
+      "category": "plugins"
+    },
+    {
+      "id": "github-claude-code-plugins",
+      "kind": "github_search_repositories",
+      "url": "https://api.github.com/search/repositories?q=%22Claude%20Code%22%20plugins&per_page=50",
+      "category": "plugins"
+    },
+    {
+      "id": "github-claude-code-skills",
+      "kind": "github_search_repositories",
+      "url": "https://api.github.com/search/repositories?q=%22Claude%20Code%22%20skills&per_page=50",
+      "category": "skills"
+    },
+    {
+      "id": "github-agent-workflows",
+      "kind": "github_search_repositories",
+      "url": "https://api.github.com/search/repositories?q=%28%22Spec%20Kit%22%20OR%20%22Spec%20Kitty%22%20OR%20OpenSpec%20OR%20BMAD%29%20Claude&per_page=50",
+      "category": "workflow_frameworks"
+    },
+    {
+      "id": "github-mcp-servers",
+      "kind": "github_search_repositories",
+      "url": "https://api.github.com/search/repositories?q=%22Model%20Context%20Protocol%22%20server&per_page=50",
+      "category": "mcp_servers"
+    }
+  ]
+}
