@@ -166,13 +166,13 @@ invariants. Ship the positive-list privacy scanner that pins NFR-002.
 
 **Included subtasks**
 
-- [ ] T019 Create `internal/analyzer/token_saving_recommendations_test.go` with the table-driven test scaffold, shared helpers (`buildState`, `marshalSet`), and the package-private allowlist string set used by the privacy scanner. (WP04)
-- [ ] T020 Add 13 table-driven scenarios for AS-01 … AS-13 with explicit expected `Primary.PrimaryToolID`, `Reason`, `Skipped[*].ToolID`, and (where the brief specifies) `Secondary.PrimaryToolID`. (WP04)
-- [ ] T021 Add `TestRecommendDeterminism` that calls `Recommend` twice with the same input and asserts `bytes.Equal(json.Marshal(a), json.Marshal(b))` over 50 randomized-input pairs (random seed is fixed). (WP04)
-- [ ] T022 Add `TestRecommendSkipsActiveTool` covering FR-017 / AS-10 across every `Signal` whose first-choice candidate is `active_high`. (WP04)
-- [ ] T023 Add `TestRecommendMCPSkillBloatNeverAddsMCP` covering FR-013 / AS-11 across all combinations of `mcp_skill_bloat` + any other signal. (WP04)
-- [ ] T024 Add `TestRecommendOnePlusOne` (C-006) sweeping every pair of firing signals and asserting (a) at most one Primary, (b) at most one Secondary, (c) when both exist their `RecommendationClass` differ. (WP04)
-- [ ] T025 Add `TestRecommendPrivacyBudget` (AS-14 / NFR-002): build inputs containing deliberately private-looking decoy `ToolID`s, marshal the result, and assert via `findNonAllowlistedSubstrings` that every byte is either an allowlisted enum string, a structural JSON character, an ASCII digit, period, underscore, or whitespace. (WP04)
+- [x] T019 Create `internal/analyzer/token_saving_recommendations_test.go` with the table-driven test scaffold, shared helpers (`buildState`, `marshalSet`), and the package-private allowlist string set used by the privacy scanner. (WP04)
+- [x] T020 Add 13 table-driven scenarios for AS-01 … AS-13 with explicit expected `Primary.PrimaryToolID`, `Reason`, `Skipped[*].ToolID`, and (where the brief specifies) `Secondary.PrimaryToolID`. (WP04)
+- [x] T021 Add `TestRecommendDeterminism` that calls `Recommend` twice with the same input and asserts `bytes.Equal(json.Marshal(a), json.Marshal(b))` over 50 randomized-input pairs (random seed is fixed). (WP04)
+- [x] T022 Add `TestRecommendSkipsActiveTool` covering FR-017 / AS-10 across every `Signal` whose first-choice candidate is `active_high`. (WP04)
+- [x] T023 Add `TestRecommendMCPSkillBloatNeverAddsMCP` covering FR-013 / AS-11 across all combinations of `mcp_skill_bloat` + any other signal. (WP04)
+- [x] T024 Add `TestRecommendOnePlusOne` (C-006) sweeping every pair of firing signals and asserting (a) at most one Primary, (b) at most one Secondary, (c) when both exist their `RecommendationClass` differ. (WP04)
+- [x] T025 Add `TestRecommendPrivacyBudget` (AS-14 / NFR-002): build inputs containing deliberately private-looking decoy `ToolID`s, marshal the result, and assert via `findNonAllowlistedSubstrings` that every byte is either an allowlisted enum string, a structural JSON character, an ASCII digit, period, underscore, or whitespace. (WP04)
 
 **Implementation sketch**: one test file, ~10 tests, all using table-driven patterns and shared helpers. The privacy scanner is the centerpiece — it's the single source of truth for NFR-002.
 
