@@ -223,7 +223,15 @@ func pickPrimary(rule ruleSpec, state ToolStateMap, present map[Signal]bool) pic
 
 		// AS-02 server-quota override: ccusage already active_high but
 		// failure_or_rejection evidence is present → escalate to
-		// server_quota_check rather than skipping.
+		// server_quota_check rather than skipping. EvidenceFailureOrRejection
+		// is the Phase A proxy for "server quota mismatch evidence" (the
+		// spec.md wording): the analyzer has no dedicated quota-mismatch
+		// evidence source yet, and the only meaningful failure ccusage
+		// can emit at this layer is a server-quota divergence. Phase B
+		// may refine this into a dedicated server_quota_mismatch evidence
+		// source; until then this proxy is intentional. See
+		// docs/remediation/token-saving-recommendation-engine.md §"Known
+		// Phase A gaps".
 		if rule.Class == ClassUsageVisibility &&
 			cand.ID == "ccusage" &&
 			st == ToolStateActiveHigh &&

@@ -389,4 +389,85 @@ Phase B does **not** edit `internal/analyzer/token_saving_tools.go` or
 If Phase B needs to change rule precedence, conflict resolution, or
 recommendation ID composition, that is a Phase A-equivalent contract
 change and must bump `EngineVersion()` with a corresponding test update.
+
+## Known Phase A gaps
+
+The Phase A post-merge mission review surfaced three behavioural gaps
+that downstream consumers should be aware of before integrating against
+the engine. None are blockers for Phase B wiring; all three close
+themselves naturally once Phase B verifies the relevant tool URLs or
+adds the missing taxonomy.
+
+### Gap 1 — RTK fallback chain is mechanically present but emits no Primary
+
+Spec FR-010 describes a fallback chain for `shell_output_bloat`: when
+RTK is `active_high` (and bloat persists) or `rejected_medium`, the
+engine should recommend `leanctx` (and optionally `headroom`). Phase A
+ships `leanctx` and `headroom` as `research_only` because the brief
+did not include verifiable public source URLs for either tool, and
+Phase A's policy is to never recommend research-only entries by
+default. As a result, when RTK is active or rejected:
+
+- `pickPrimary` walks past RTK (via the skip-and-continue branches),
+- finds no further recommend-eligible candidate in the
+  `shell_output_reducer` class,
+- returns `Primary = nil` with a single `SkipNote` for RTK.
+
+Acceptance scenarios AS-05 and AS-06 accept this `Primary = nil`
+outcome explicitly. Callers should treat this as: "Phase A has no
+verified shell-output fallback yet — surface the SkipNote so the user
+sees the active-or-rejected RTK observation, and treat the absent
+recommendation as 'no additional play available'." Phase B unblocks
+this by verifying `leanctx` (and optionally `headroom`) URLs and
+promoting them from `research_only` to `recommend`.
+
+### Gap 2 — `unchanged_file_rereads` emits an empty advisory in Phase A
+
+Spec FR-013 promises a `reread_guard` recommendation (`read_once`,
+`leanctx`) for `unchanged_file_rereads`. Phase A's registry ships
+every `reread_guard` candidate as `research_only` (URLs unverified)
+and the single reference-only entry at the rank-99 sentinel. When
+`SignalUnchangedFileRereads` fires alone, the engine's
+empty-candidate-list branch produces a synthetic advisory
+recommendation:
+
+- `PrimaryToolID = ""`,
+- `Reason = ReasonAbsent` (from the rule's `PrimaryReason`),
+- `ConfidenceMedium`, `RiskLow`, `InstallPolicy = recommend`,
+- empty `EvidenceCounts`,
+- `RecommendationID = "rec.reread_guard.none.unchanged_file_rereads"`.
+
+Callers should treat advisory recommendations (any `Primary` with
+`PrimaryToolID == ""`) as "the engine has policy-level guidance for
+this signal but no verified tool to point at yet". The recommended
+caller behaviour is to surface the advisory's `Reason` enum as text
+(for `reread_guard`: a generic "audit your read-once / session-memory
+configuration") rather than to try to render an empty tool name.
+Phase B closes this gap by verifying `read_once` / `openwolf` URLs.
+
+### Gap 3 — `ToolStateMap.Resolve` is a caller-facing helper, not part of `Recommend`'s pipeline
+
+The engine assumes the input `ToolStateMap` is already
+conflict-resolved: each `ToolStateEntry.State` is the post-precedence
+trust level the caller has decided on. `Recommend` does not call
+`ToolStateMap.Resolve` internally; it reads `state[id].State`
+directly.
+
+`ToolStateMap.Resolve` is exposed as a public helper so callers that
+collect multiple evidence sources per tool can combine them
+deterministically before populating the map. Its precedence is the
+canonical one from FR-018:
+
+```
+rejected_medium > active_high > configured_medium >
+installed_medium > mentioned_low > unknown
+```
+
+The precedence is pinned by a dedicated unit test
+(`TestToolStateMapResolve`). Phase B fingerprint and utilization
+inputs from issues #38 and #39 must run their per-tool evidence
+through this helper (or an equivalent caller-side combiner) before
+handing the result to `Recommend`. If Phase B prefers the engine to
+do the combining, that is a Phase A-equivalent contract change and
+must bump `EngineVersion()` with a corresponding test update.
 The frozen surface is what lets the parallel epics ship in any order.

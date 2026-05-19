@@ -138,6 +138,16 @@ func TestRegistryInvariants(t *testing.T) {
 		if tool.SourceURL == "" && !tool.ResearchOnly {
 			t.Errorf("tool %q: empty SourceURL requires ResearchOnly=true", tool.ID)
 		}
+
+		// Rank-99 is the sentinel for reference-only entries (architecture
+		// references, ecosystem indices) that must never become default
+		// recommendations even if their InstallPolicy is later edited.
+		// Mission-review RISK-10: tighten the invariant so a maintainer
+		// who promotes a rank-99 entry to "recommend" trips this test.
+		if tool.ClassRank == 99 && tool.InstallPolicy != "reference_only" {
+			t.Errorf("tool %q: ClassRank=99 is reserved for reference_only entries; got InstallPolicy=%q",
+				tool.ID, tool.InstallPolicy)
+		}
 	}
 }
 
