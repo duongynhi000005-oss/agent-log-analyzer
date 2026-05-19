@@ -229,3 +229,4 @@ research.md, data-model.md, contracts/.
 ## Activity Log
 
 - 2026-05-19T09:29:15Z – claude:opus-4-7:curator-carla:curator – shell_pid=44798 – Started implementation via action command
+- 2026-05-19T09:33:48Z – claude:opus-4-7:curator-carla:curator – shell_pid=44798 – New engine doc covering classes, allowlist policy, state model, recommendation contract, risk/policy, waiver, privacy, Phase B plan
