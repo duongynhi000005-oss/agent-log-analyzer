@@ -103,12 +103,12 @@ small public lookup API and a test that locks the registry's invariants.
 
 **Included subtasks**
 
-- [ ] T006 Create `internal/analyzer/token_saving_types.go` with the file header comment naming this as Phase A additive code. (WP02)
-- [ ] T007 Declare named string types and constants for `ToolState`, `EvidenceSource`, `Signal`, `RecommendationClass`, `Confidence`, `RiskLevel`, `InstallPolicy`, `Reason` (exact values from data-model.md). (WP02)
-- [ ] T008 Declare `ToolStateEntry` struct and `type ToolStateMap map[ToolID]ToolStateEntry`. (WP02)
-- [ ] T009 Implement `ToolStateMap.Resolve(state1, state2 ToolState) ToolState` using precedence `rejected_medium > active_high > configured_medium > installed_medium > mentioned_low > unknown`. (WP02)
-- [ ] T010 Implement deterministic helpers `(ToolStateMap).SortedTools() []ToolID` and `sortedSignalIDs(in []Signal) []Signal`. (WP02)
-- [ ] T011 Declare output structs (`TokenSavingRecommendation`, `SkipNote`, `RecommendationSet`) with the JSON tags from contracts/, and an `EngineVersion()` returning the constant `"v0.1-phase-a"`. (WP02)
+- [x] T006 Create `internal/analyzer/token_saving_types.go` with the file header comment naming this as Phase A additive code. (WP02)
+- [x] T007 Declare named string types and constants for `ToolState`, `EvidenceSource`, `Signal`, `RecommendationClass`, `Confidence`, `RiskLevel`, `InstallPolicy`, `Reason` (exact values from data-model.md). (WP02)
+- [x] T008 Declare `ToolStateEntry` struct and `type ToolStateMap map[ToolID]ToolStateEntry`. (WP02)
+- [x] T009 Implement `ToolStateMap.Resolve(state1, state2 ToolState) ToolState` using precedence `rejected_medium > active_high > configured_medium > installed_medium > mentioned_low > unknown`. (WP02)
+- [x] T010 Implement deterministic helpers `(ToolStateMap).SortedTools() []ToolID` and `sortedSignalIDs(in []Signal) []Signal`. (WP02)
+- [x] T011 Declare output structs (`TokenSavingRecommendation`, `SkipNote`, `RecommendationSet`) with the JSON tags from contracts/, and an `EngineVersion()` returning the constant `"v0.1-phase-a"`. (WP02)
 
 **Implementation sketch**: pure type declarations + two small helpers. No imports beyond `sort` and `strings` for the helpers.
 
