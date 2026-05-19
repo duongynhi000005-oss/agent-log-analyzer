@@ -1,7 +1,6 @@
 {
-  "mission_id": "01KRZKCJN2VCSE6M6T29VHZS96",
   "mission_slug": "token-saving-recommendation-engine-phase-a-01KRZKCJ",
-  "mission_number": null,
+  "mission_number": "",
   "mission_type": "software-dev",
   "overall_verdict": "pass",
   "criteria": [
@@ -79,7 +78,7 @@
       "criterion_id": "FR-008",
       "description": "Recommend is a pure deterministic function of (signals, ToolStateMap).",
       "proof_type": "automated_test",
-      "evidence": "TestRecommendDeterminism — 50 deterministic input rows, asserts bytes.Equal on json.Marshal across two calls.",
+      "evidence": "TestRecommendDeterminism \u2014 50 deterministic input rows, asserts bytes.Equal on json.Marshal across two calls.",
       "pass_fail": "pass",
       "verified_by": "claude:opus-4-7:reviewer-rina:reviewer",
       "verified_at": "2026-05-19T08:00:00Z",
@@ -199,7 +198,7 @@
       "criterion_id": "FR-020",
       "description": "Privacy test: marshalled output contains only allowlisted enum strings and bounded counts.",
       "proof_type": "automated_test",
-      "evidence": "TestRecommendPrivacyBudget — positive-list scanner with built-in self-check probe (sk-ant-LEAKY injection); decoy-state sweep across all 11 single signals + sampled pairs.",
+      "evidence": "TestRecommendPrivacyBudget \u2014 positive-list scanner with built-in self-check probe (sk-ant-LEAKY injection); decoy-state sweep across all 11 single signals + sampled pairs.",
       "pass_fail": "pass",
       "verified_by": "claude:opus-4-7:reviewer-rina:reviewer",
       "verified_at": "2026-05-19T08:00:00Z",
@@ -292,24 +291,24 @@
       "description": "No CLI / binary probing in Phase A (defer to issue #67). Token-saving source files must not invoke any subprocess / exec API.",
       "verification_method": "custom_command",
       "verification_command": "! grep -nE 'os/exec|exec\\.LookPath|exec\\.Command|os\\.Exec' internal/analyzer/token_saving_tools.go internal/analyzer/token_saving_types.go internal/analyzer/token_saving_recommendations.go",
-      "result": "pending",
-      "evidence": null
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: "
     },
     {
       "invariant_id": "NFR-003",
       "description": "Additivity invariant: internal/analyzer/types.go and ecosystem.go must be unchanged relative to the mission baseline.",
       "verification_method": "custom_command",
       "verification_command": "test -z \"$(git diff dad606a..HEAD -- internal/analyzer/types.go internal/analyzer/ecosystem.go)\"",
-      "result": "pending",
-      "evidence": null
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: "
     },
     {
       "invariant_id": "C-005",
       "description": "Map keys in engine output must be static enum values; no raw log-derived strings.",
       "verification_method": "custom_command",
       "verification_command": "! grep -nE 'map\\[string\\]' internal/analyzer/token_saving_recommendations.go internal/analyzer/token_saving_types.go",
-      "result": "pending",
-      "evidence": null
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: "
     }
   ]
 }
