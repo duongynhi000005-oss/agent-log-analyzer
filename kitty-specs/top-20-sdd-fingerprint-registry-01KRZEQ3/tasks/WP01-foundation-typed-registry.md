@@ -20,8 +20,8 @@ subtasks:
 - T004
 - T005
 phase: Phase 1 — Foundation
-agent: claude
-shell_pid: '1018'
+agent: "claude:opus-4.7:implementer-ivan:implementer"
+shell_pid: "1018"
 history:
 - at: '2026-05-19T06:35:00Z'
   actor: system
@@ -247,3 +247,4 @@ Tests are required: see T004 above. No table-driven testing convention is enforc
 ## Activity Log
 
 - 2026-05-19T06:35:00Z -- system -- Prompt created.
+- 2026-05-19T07:26:09Z – claude:opus-4.7:implementer-ivan:implementer – shell_pid=1018 – Assigned agent via action command
