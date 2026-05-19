@@ -79,7 +79,7 @@ prompt.
 
 - **Steps**:
   1. Create `internal/analyzer/signatures/sdd_detectors_first_class.json` (new file, starting as `[]`). The WP01 loader globs `signatures/sdd_detectors*.json`, so this tier file is picked up automatically.
-  2. Append the `spec_kitty` entry. Required fields:
+  2. Add the `spec_kitty` entry to this tier file (the registry loader globs `sdd_detectors*.json`; this WP's tier file is the authoritative home for first-class entries). Required fields:
      - `id`: `"spec_kitty"`.
      - `display_name`: `"Spec Kitty"`.
      - `aliases`: `["spec-kitty"]`.
@@ -105,7 +105,7 @@ prompt.
 ### Subtask T022 — Seed `github_spec_kit`
 
 - **Steps**:
-  1. Append `github_spec_kit` entry. Required fields mirror T021 but use the GitHub Spec Kit research:
+  1. Add the `github_spec_kit` entry to the same tier file (`sdd_detectors_first_class.json`). Required fields mirror T021 but use the GitHub Spec Kit research:
      - `id`: `"github_spec_kit"`. `display_name`: `"GitHub Spec Kit"`. `aliases`: `["spec-kit", "github/spec-kit"]`.
      - `competitor_priority`: `2`.
      - `markers` distinguished from `spec_kitty`:
@@ -117,7 +117,7 @@ prompt.
 ### Subtask T023 — Seed `openspec`
 
 - **Steps**:
-  1. Append `openspec` entry. From research:
+  1. Add the `openspec` entry to the same tier file (`sdd_detectors_first_class.json`). From research:
      - `id`: `"openspec"`. `display_name`: `"OpenSpec"`.
      - `competitor_priority`: `3`.
      - `markers`: tool-specific `config_dir` or `config_file` (e.g., `openspec.yaml`), `cli_binary`: `"openspec"`, slash commands per research.

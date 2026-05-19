@@ -60,7 +60,7 @@ prompt.
 
 ### Subtask T034 — Canary leak test
 
-- **File**: `internal/analyzer/sdd/leak_test.go` (new, ~200 lines).
+- **File**: `internal/analyzer/leak_test.go` (new, ~200 lines, package `analyzer_test` — placed at the analyzer top level so it can import `analyzer` without an import cycle).
 - **Steps**:
   1. Define the 16 canary values exactly as in `contracts/forbidden-strings.md`.
   2. Build a fully populated `analyzer.Report` value programmatically. Use realistic field values for ID-like fields (use real allowlisted detector IDs from the registry); use the canary values for any field that could plausibly carry private content.
@@ -98,7 +98,7 @@ prompt.
          return []byte(strings.Join(lines, "\n"))
      }
      ```
-  5. The test lives in the `sdd` package but imports `analyzer`. To avoid an import cycle, place it in `analyzer_test` package (`package analyzer_test` in `analyzer/leak_test.go`). Update `owned_files` accordingly in the WP frontmatter if needed.
+  5. The test lives in `package analyzer_test` at `internal/analyzer/leak_test.go` (already declared in `owned_files`). Importing the `analyzer` package directly from that file is the simplest layout — no import cycle, no special build tags.
 - **Important**: this test asserts behavior of `analyzer.Analyze`, not just `sdd.Evaluate`. It's the end-to-end privacy guardrail.
 
 ### Subtask T035 — Update existing analyzer tests

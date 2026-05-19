@@ -68,14 +68,15 @@ prompt.
 ### Subtask T026 — Seed `kiro`
 
 - **Steps**:
-  1. Append a `kiro` detector entry to `sdd_detectors_second_ring.json` using markers from research.
+  1. Create `internal/analyzer/signatures/sdd_detectors_second_ring.json` (new tier file owned by this WP, starts as `[]`). The loader globs `sdd_detectors*.json` and picks it up automatically.
+  2. Add a `kiro` detector entry to that tier file using markers from research.
   2. Kiro's source-class signal includes config dir, slash commands, possibly an MCP server name. Note that `hooks` alone is in the FR-012 negative-name list — never use `hooks` as a Kiro-specific marker without an additional tool-specific qualifier.
   3. Add `internal/analyzer/sdd/testdata/fixtures/kiro.txt` (~10 lines, sanitized).
 
 ### Subtask T027 — Seed `bmad`
 
 - **Steps**:
-  1. Append a `bmad` detector entry. ID `"bmad"`, display `"BMAD-METHOD"`, aliases `["bmad-method"]`.
+  1. Add a `bmad` detector entry. ID `"bmad"`, display `"BMAD-METHOD"`, aliases `["bmad-method"]`.
   2. Markers: tool-specific config_dir / config_file from research, CLI binary name, slash commands.
   3. `competitor_priority`: `5`.
   4. Add `internal/analyzer/sdd/testdata/fixtures/bmad.txt`.
@@ -83,7 +84,7 @@ prompt.
 ### Subtask T028 — Seed `gsd`
 
 - **Steps**:
-  1. Append a `gsd` detector entry. The brief flags `STATE.md` as a false-positive marker, so any GSD pattern must require an additional tool-specific qualifier.
+  1. Add a `gsd` detector entry. The brief flags `STATE.md` as a false-positive marker, so any GSD pattern must require an additional tool-specific qualifier.
   2. `competitor_priority`: `6`.
   3. Add `internal/analyzer/sdd/testdata/fixtures/gsd.txt`.
 

@@ -79,8 +79,10 @@ prompt.
 ### Subtask T030 — Seed first 7 long-tail tools
 
 - **Tools**: `spec_workflow_mcp`, `sdd_pilot`, `spec_driven_develop`, `spec2ship`, `chatdev`, `paul`, `fspec`.
-- **Steps for each**:
-  1. Append a `verified` detector entry derived from the corresponding research file.
+- **Steps**:
+  1. Create `internal/analyzer/signatures/sdd_detectors_long_tail.json` (new tier file owned by this WP, starts as `[]`). The loader globs `sdd_detectors*.json` and picks it up automatically.
+- **For each tool**:
+  1. Add a `verified` detector entry derived from the corresponding research file.
   2. Each entry needs at least one tool-specific marker plus, where applicable, a `cli_binary` or `mcp_server_name`.
   3. Set `competitor_priority` in the 7–13 range, ordered by general visibility.
   4. Add the fixture file `testdata/fixtures/<id>.txt` with hand-crafted scrubbed content that contains the tool-specific markers and nothing else.
