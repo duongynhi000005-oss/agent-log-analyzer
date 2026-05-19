@@ -18,11 +18,11 @@
 | T007 | Create `internal/analyzer/sdd/version_bucket.go` with `normalizeVersionBucket` | WP02 | [D] |
 | T008 | Add `probe_test.go` + `version_bucket_test.go` (FakeProbe + one safe RealProbe integration test) | WP02 | | [D] |
 | T009 | Add `version_args` deny-list enforcement to registry loader | WP02 | [P] |
-| T010 | Create `internal/analyzer/sdd/evaluator.go` with `Evaluate(text, lines, probe, registry) []EcosystemFingerprint` | WP03 | |
-| T011 | Implement `ConfidenceRule` scoring and `Active` derivation | WP03 | |
-| T012 | Implement `Marker.Negative` veto logic | WP03 | |
-| T013 | Wire `internal/analyzer/ecosystem.go` to call `sdd.Evaluate` and assign `Ecosystem.WorkflowFingerprints` | WP03 | |
-| T014 | Add `evaluator_test.go` with synthetic detectors verifying scoring, ordering, Active | WP03 | |
+| T010 | Create `internal/analyzer/sdd/evaluator.go` with `Evaluate(text, lines, probe, registry) []EcosystemFingerprint` | WP03 | | [D] |
+| T011 | Implement `ConfidenceRule` scoring and `Active` derivation | WP03 | | [D] |
+| T012 | Implement `Marker.Negative` veto logic | WP03 | | [D] |
+| T013 | Wire `internal/analyzer/ecosystem.go` to call `sdd.Evaluate` and assign `Ecosystem.WorkflowFingerprints` | WP03 | | [D] |
+| T014 | Add `evaluator_test.go` with synthetic detectors verifying scoring, ordering, Active | WP03 | | [D] |
 | T015 | Scaffold `docs/research/sdd-fingerprints/` + per-tool stubs + `README.md` | WP04 | | [D] |
 | T016 | Research and fill: Spec Kitty, GitHub Spec Kit, OpenSpec | WP04 | [D] |
 | T017 | Research and fill: Kiro, BMAD-METHOD, GSD | WP04 | [D] |
