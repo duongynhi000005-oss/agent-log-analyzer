@@ -256,3 +256,7 @@ When reviewing:
 ```bash
 spec-kitty agent action implement WP01 --agent claude
 ```
+
+## Activity Log
+
+- 2026-05-19T09:34:39Z – claude – Moved to done
