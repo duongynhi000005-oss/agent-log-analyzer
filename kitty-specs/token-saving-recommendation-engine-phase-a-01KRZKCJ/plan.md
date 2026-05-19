@@ -34,7 +34,7 @@ inputs without touching the engine.
 **Recommendation ID scheme**: Composed enum string `rec.<recommendation_class>.<primary_tool_id>.<sorted_signal_ids_joined_with_underscore>`. Stable, human-readable, deterministic by construction.
 **Rule precedence**: Fixed 8-step ordering documented in `research.md` (no_usage_visibility → mcp_skill_bloat → mcp_tool_output_bloat → shell_output_bloat → repeated_file_reads/broad_repo_exploration → unchanged_file_rereads → retry_loop/context_growth_spikes → output_verbosity).
 
-No `[NEEDS CLARIFICATION]` markers remain.
+No deferred-clarification markers remain.
 
 ## Charter Check
 
