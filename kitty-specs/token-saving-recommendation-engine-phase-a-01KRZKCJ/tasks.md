@@ -229,9 +229,9 @@ plan.
 
 **Included subtasks**
 
-- [ ] T031 Update `docs/remediation/token-saving-tooling-matrix.md`: add a "Registry cross-reference" section pointing at `internal/analyzer/token_saving_tools.go` and the new engine doc; add a short paragraph explaining the dedupe-aware recommendation contract (≤ 1 + ≤ 1, active-tool skip). Do not rewrite existing tier tables. (WP06)
-- [ ] T032 Update `docs/remediation/plugin-artifacts.md`: add an additive paragraph explaining that paid plugin artifacts may now optionally embed a `TokenSavingRecommendation` object (sourced from the new engine) without breaking current artifact tests. (WP06)
-- [ ] T033 Add a "See also" line in both updated files pointing at `docs/remediation/token-saving-recommendation-engine.md`. (WP06)
+- [x] T031 Update `docs/remediation/token-saving-tooling-matrix.md`: add a "Registry cross-reference" section pointing at `internal/analyzer/token_saving_tools.go` and the new engine doc; add a short paragraph explaining the dedupe-aware recommendation contract (≤ 1 + ≤ 1, active-tool skip). Do not rewrite existing tier tables. (WP06)
+- [x] T032 Update `docs/remediation/plugin-artifacts.md`: add an additive paragraph explaining that paid plugin artifacts may now optionally embed a `TokenSavingRecommendation` object (sourced from the new engine) without breaking current artifact tests. (WP06)
+- [x] T033 Add a "See also" line in both updated files pointing at `docs/remediation/token-saving-recommendation-engine.md`. (WP06)
 
 **Implementation sketch**: small additive edits, no deletions. Run `git diff` self-review before committing.
 
