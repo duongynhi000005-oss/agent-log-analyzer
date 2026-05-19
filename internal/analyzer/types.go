@@ -49,19 +49,58 @@ type FindingEvidence struct {
 }
 
 type Ecosystem struct {
-	Client                string   `json:"client"`
-	CodingAgents          []string `json:"coding_agents"`
-	OperatingSystem       string   `json:"operating_system"`
-	Shell                 string   `json:"shell"`
-	WorkflowFrameworks    []string `json:"workflow_frameworks"`
-	MCPServersKnown       []string `json:"mcp_servers_known"`
-	UnknownMCPServerCount int      `json:"unknown_mcp_server_count"`
-	KnownSkills           []string `json:"known_skills"`
-	UnknownSkillCount     int      `json:"unknown_skill_count"`
-	KnownPlugins          []string `json:"known_plugins"`
-	UnknownPluginCount    int      `json:"unknown_plugin_count"`
-	PackageManagers       []string `json:"package_managers"`
-	VersionControl        string   `json:"version_control"`
+	Client                string             `json:"client"`
+	CodingAgents          []string           `json:"coding_agents"`
+	OperatingSystem       string             `json:"operating_system"`
+	Shell                 string             `json:"shell"`
+	WorkflowFrameworks    []string           `json:"workflow_frameworks"`
+	MCPServersKnown       []string           `json:"mcp_servers_known"`
+	UnknownMCPServerCount int                `json:"unknown_mcp_server_count"`
+	KnownSkills           []string           `json:"known_skills"`
+	UnknownSkillCount     int                `json:"unknown_skill_count"`
+	KnownPlugins          []string           `json:"known_plugins"`
+	UnknownPluginCount    int                `json:"unknown_plugin_count"`
+	PackageManagers       []string           `json:"package_managers"`
+	VersionControl        string             `json:"version_control"`
+	ToolingUtilization    ToolingUtilization `json:"tooling_utilization"`
+}
+
+type ToolingUtilization struct {
+	MCP   MCPUtilization   `json:"mcp"`
+	Skill SkillUtilization `json:"skill"`
+}
+
+type MCPUtilization struct {
+	KnownServerIDs           []string `json:"known_server_ids"`
+	UnknownServerCount       int      `json:"unknown_server_count"`
+	ServerCountBucket        string   `json:"server_count_bucket"`
+	ExposedToolCountBucket   string   `json:"exposed_tool_count_bucket"`
+	ContextTokenBucket       string   `json:"context_token_bucket"`
+	ExposureKnown            bool     `json:"exposure_known"`
+	InferenceSource          string   `json:"inference_source"`
+	CallCount                int      `json:"call_count"`
+	KnownCallCount           int      `json:"known_call_count"`
+	UnknownCallCount         int      `json:"unknown_call_count"`
+	UniqueKnownCalledIDs     []string `json:"unique_known_called_ids"`
+	UniqueUnknownCalledCount int      `json:"unique_unknown_called_count"`
+	UtilizationRatioPct      int      `json:"utilization_ratio_pct"`
+	ContextEfficiencyBucket  string   `json:"context_efficiency_bucket"`
+	WarningBand              string   `json:"warning_band"`
+}
+
+type SkillUtilization struct {
+	KnownExposedIDs         []string `json:"known_exposed_ids"`
+	UnknownExposedCount     int      `json:"unknown_exposed_count"`
+	ExposedCountBucket      string   `json:"exposed_count_bucket"`
+	ContextTokenBucket      string   `json:"context_token_bucket"`
+	ExposureKnown           bool     `json:"exposure_known"`
+	InferenceSource         string   `json:"inference_source"`
+	ExecutedCount           int      `json:"executed_count"`
+	KnownExecutedIDs        []string `json:"known_executed_ids"`
+	UnknownExecutedCount    int      `json:"unknown_executed_count"`
+	UtilizationRatioPct     int      `json:"utilization_ratio_pct"`
+	ContextEfficiencyBucket string   `json:"context_efficiency_bucket"`
+	WarningBand             string   `json:"warning_band"`
 }
 
 type SecurityReceipt struct {
