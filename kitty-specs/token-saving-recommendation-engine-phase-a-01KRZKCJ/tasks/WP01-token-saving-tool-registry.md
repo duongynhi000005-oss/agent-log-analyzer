@@ -283,3 +283,4 @@ passes.
 ## Activity Log
 
 - 2026-05-19T09:20:58Z – claude:opus-4-7:implementer-ivan:implementer – shell_pid=42671 – Assigned agent via action command
+- 2026-05-19T09:25:49Z – claude:opus-4-7:implementer-ivan:implementer – shell_pid=42671 – Registry, lookup API, invariant + coverage tests; all tests green; placeholder type aliases for WP02 enum types documented in file header
