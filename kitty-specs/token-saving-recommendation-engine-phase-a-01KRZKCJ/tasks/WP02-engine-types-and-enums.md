@@ -19,7 +19,8 @@ subtasks:
 - T009
 - T010
 - T011
-agent: claude
+agent: "claude:opus-4-7:implementer-ivan:implementer"
+shell_pid: "44738"
 history:
 - '2026-05-19': created from mission token-saving-recommendation-engine-phase-a-01KRZKCJ
 agent_profile: implementer-ivan
@@ -298,3 +299,7 @@ exercised end-to-end by WP04.
 - Any code that actually emits a `TokenSavingRecommendation` (lives in WP03).
 - Any test file (WP04 owns the engine tests).
 - Any registry / `TokenSavingTool` work (WP01 owns the registry).
+
+## Activity Log
+
+- 2026-05-19T09:29:08Z – claude:opus-4-7:implementer-ivan:implementer – shell_pid=44738 – Started implementation via action command
