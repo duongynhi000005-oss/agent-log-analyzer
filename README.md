@@ -15,7 +15,7 @@ The production target is CDN + local deterministic CLI + report-only upload + sh
 
 There is intentionally no browser upload form. Claude Code logs live under `~/.claude`, which is awkward for Finder/browser upload flows. The public launch path is local-first:
 
-1. The user installs the open-source CLI with `go install github.com/robertdouglass/claude-log-analyzer/cmd/claude-analyzer@v0.1.0`.
+1. The user installs the source-available CLI with `go install github.com/robertdouglass/claude-log-analyzer/cmd/claude-analyzer@v0.1.0`.
 2. `claude-analyzer analyze --out ./claude-analyzer-report.json` finds the latest Claude Code JSONL log, parses and redacts it locally, and writes a sanitized report.
 3. The user reviews the JSON with `jq . ./claude-analyzer-report.json`.
 4. `claude-analyzer upload ./claude-analyzer-report.json` sends only the sanitized report to `POST /api/client-reports`.
@@ -80,3 +80,12 @@ Raw logs are treated as toxic. The launch UX parses and redacts locally, emits a
 See [docs/data-retention-and-analytics.md](docs/data-retention-and-analytics.md).
 
 Cloud launch checklist: [docs/cloud-launch-todo.md](docs/cloud-launch-todo.md).
+
+## License
+
+Claude Log Analyzer is source-available, not open source. You may inspect,
+clone, and run the software for personal/internal evaluation and development
+testing, but production, hosted, commercial, redistribution, and managed-service
+uses require a separate written license.
+
+See [LICENSE](LICENSE).

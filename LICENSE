@@ -1,0 +1,60 @@
+# Claude Log Analyzer Source Available License
+
+Copyright (c) 2026 Robert Douglass. All rights reserved.
+
+This license governs the Claude Log Analyzer source code and related project files
+in this repository, except for files that clearly state a different license.
+Third-party dependencies remain governed by their own licenses.
+
+## 1. Source Availability
+
+You may view, download, and clone this repository to inspect the source code,
+evaluate the software, report issues, and propose contributions.
+
+## 2. Limited Evaluation Use
+
+You may run unmodified copies of the software for personal, internal evaluation,
+security review, and development testing. This permission does not include any
+production, hosted, commercial, resale, or service-provider use.
+
+## 3. Contributions
+
+By submitting a contribution, you grant Robert Douglass a perpetual, worldwide,
+irrevocable, royalty-free license to use, reproduce, modify, distribute,
+sublicense, and relicense your contribution as part of Claude Log Analyzer.
+You represent that you have the right to grant this license.
+
+## 4. Restrictions
+
+Except as expressly allowed above, you may not:
+
+- use the software in production or for commercial purposes;
+- provide the software, or substantially similar functionality, as a hosted or
+  managed service;
+- sell, rent, lease, sublicense, redistribute, or otherwise make the software
+  available to third parties;
+- modify, create derivative works, or distribute modified versions outside your
+  own private evaluation environment;
+- remove copyright, license, attribution, or proprietary notices;
+- use the software to train, fine-tune, or improve a machine learning model
+  without prior written permission.
+
+## 5. Commercial Licensing
+
+Production, hosted, commercial, redistribution, and other uses not expressly
+permitted by this license require a separate written commercial license from
+Robert Douglass.
+
+## 6. No Trademark Rights
+
+This license does not grant rights to use the names, logos, trademarks, service
+marks, or branding of Claude Log Analyzer or Robert Douglass.
+
+## 7. Disclaimer
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
