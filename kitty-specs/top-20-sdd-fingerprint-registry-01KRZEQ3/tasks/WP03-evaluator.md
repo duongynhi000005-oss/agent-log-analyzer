@@ -18,7 +18,8 @@ subtasks:
 - T013
 - T014
 phase: Phase 2 — Engine
-agent: claude
+agent: "claude:opus-4.7:implementer-ivan:implementer"
+shell_pid: "11958"
 history:
 - at: '2026-05-19T06:35:00Z'
   actor: system
@@ -167,3 +168,4 @@ match for this work package's `task_type` and `authoritative_surface`.
 ## Activity Log
 
 - 2026-05-19T06:35:00Z -- system -- Prompt created.
+- 2026-05-19T07:38:30Z – claude:opus-4.7:implementer-ivan:implementer – shell_pid=11958 – Started implementation via action command
