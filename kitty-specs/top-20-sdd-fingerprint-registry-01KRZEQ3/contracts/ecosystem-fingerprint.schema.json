@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/robertdouglass/claude-log-analyzer/kitty-specs/top-20-sdd-fingerprint-registry-01KRZEQ3/contracts/ecosystem-fingerprint.schema.json",
+  "title": "EcosystemFingerprint",
+  "description": "Report-emitted fingerprint for one detected SDD tool. Member of Ecosystem.workflow_fingerprints. MUST contain no raw private content of any kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "confidence", "sources", "evidence_count"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{2,}$",
+      "description": "Allowlisted public detector ID."
+    },
+    "confidence": { "enum": ["high", "medium", "low"] },
+    "sources": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "config_dir",
+          "config_file",
+          "package_manifest",
+          "command_name",
+          "slash_command",
+          "mcp_server_name",
+          "skill_name",
+          "plugin_manifest",
+          "cli_binary",
+          "cli_version_probe"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "evidence_count": { "type": "integer", "minimum": 1 },
+    "active": { "type": "boolean" },
+    "installed": { "type": "boolean" },
+    "version_bucket": {
+      "type": "string",
+      "maxLength": 16,
+      "pattern": "^[0-9]+\\.[0-9]+$|^$",
+      "description": "Normalized MAJOR.MINOR bucket; never raw --version output."
+    }
+  }
+}
