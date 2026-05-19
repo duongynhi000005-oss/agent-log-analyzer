@@ -303,3 +303,4 @@ exercised end-to-end by WP04.
 ## Activity Log
 
 - 2026-05-19T09:29:08Z – claude:opus-4-7:implementer-ivan:implementer – shell_pid=44738 – Started implementation via action command
+- 2026-05-19T09:33:18Z – claude:opus-4-7:implementer-ivan:implementer – shell_pid=44738 – Engine types + enums + ToolStateMap.Resolve + output structs; WP01 alias placeholders removed; all tests green
