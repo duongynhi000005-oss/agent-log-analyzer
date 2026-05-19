@@ -1,5 +1,24 @@
 # Ecosystem Signatures
 
+## See also
+
+The [SDD fingerprint registry](sdd-fingerprint-registry.md) is the canonical
+source for spec-driven-development tool detection (Spec Kitty, GitHub Spec
+Kit, OpenSpec, Kiro, BMAD-METHOD, and the long tail). It defines a typed
+`SDDDetector` schema with deterministic confidence rules, a privacy-safe CLI
+probe contract, and a bounded `EcosystemFingerprint` report record. New SDD
+detection lives in `Ecosystem.WorkflowFingerprints` (a `[]EcosystemFingerprint`
+slice).
+
+The legacy `WorkflowFrameworks []string` field documented below is preserved
+unchanged per constraint
+[C-004](../kitty-specs/top-20-sdd-fingerprint-registry-01KRZEQ3/spec.md#constraints)
+so existing report consumers (web UI, golden tests) keep working. This file
+continues to document the broader ecosystem-signature pattern that drives
+that legacy field.
+
+## Registries
+
 Ecosystem intelligence is driven by versioned JSON registries embedded into the analyzer:
 
 ```text
