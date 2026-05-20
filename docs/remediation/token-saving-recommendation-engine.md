@@ -64,7 +64,7 @@ Responds to `mcp_tool_output_bloat`. Anchored by `context_mode` (rank 1)
 with `distill` and `token_optimizer_mcp` as research-only candidates.
 
 **`shell_output_reducer`** — Compressing or proxying shell command output.
-Responds to `shell_output_bloat`. Anchored by `rtk` (rank 1, waiver-gated)
+Responds to `shell_output_bloat`. Anchored by `RTK (Rust Token Killer, rtk-ai/rtk)` (rank 1, waiver-gated)
 with `leanctx` and `headroom` as research-only entries.
 
 **`retrieval`** — Code-aware retrieval that replaces broad file reads.
@@ -99,10 +99,15 @@ the engine increments `RecommendationSet.UnknownIDCount` and drops the
 entry from decision-making. Unknown IDs never appear in `Primary`,
 `Secondary`, or `Skipped` output fields.
 
+Installable recommendations also carry `primary_tool_name` and
+`primary_tool_url`, copied only from the audited registry entry. These
+fields are never derived from logs or user configuration. Advisory
+recommendations leave them empty.
+
 Adding, removing, or modifying any registry entry must bump
 `RegistryVersion()` — a CI test compares the live value to a checked-in
 golden constant and fails fast otherwise. The version string is itself an
-allowlisted enum string (e.g. `"phase-a-2026-05-19"`); see NFR-005.
+allowlisted enum string (e.g. `"phase-a-2026-05-20-tool-url-audit"`); see NFR-005.
 
 For URL verification, see `research.md` §"Per-tool research notes". The
 short version: Phase A does **not** invent or guess source URLs. Every
@@ -264,6 +269,9 @@ The waiver gate is **required** for any recommendation whose
 `InstallRisk == high` or `DataMovementRisk == high`. In Phase A this
 covers `rtk` and any future shell/proxy rewriter or off-device data
 mover.
+
+RTK means `https://github.com/rtk-ai/rtk`. Do not map this recommendation
+to the unrelated npm package named `rtk`.
 
 The engine's responsibility ends at *surfacing* the policy: it copies the
 tool's `InstallPolicy` verbatim into the recommendation's `InstallPolicy`

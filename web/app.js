@@ -411,7 +411,7 @@ const TOOL_LABEL = {
   context_mode: "Context Mode",
   distill: "Distill",
   token_optimizer_mcp: "Token Optimizer MCP",
-  rtk: "RTK",
+  rtk: "RTK (Rust Token Killer, rtk-ai/rtk)",
   leanctx: "LeanCtx",
   headroom: "Headroom",
   claude_context: "Claude Context",
@@ -431,6 +431,22 @@ const TOOL_LABEL = {
   caveman: "Caveman",
   claude_code_hooks_mastery: "Claude Code Hooks Mastery",
   awesome_claude_code: "Awesome Claude Code",
+};
+
+const TOOL_URL = {
+  ccusage: "https://github.com/ryoppippi/ccusage",
+  ccstatusline: "https://github.com/sirmalloc/ccstatusline",
+  claude_code_usage_monitor: "https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor",
+  claude_code_usage_tracker: "https://github.com/LyndonWangWork/Claude-Code-Usage-Tracker",
+  context_mode: "https://github.com/mksglu/context-mode",
+  rtk: "https://github.com/rtk-ai/rtk",
+  claude_context: "https://github.com/zilliztech/claude-context",
+  grepai: "https://github.com/yoanbernabeu/grepai",
+  memsearch: "https://github.com/zilliztech/memsearch",
+  claude_token_efficient: "https://github.com/drona23/claude-token-efficient",
+  caveman: "https://github.com/JuliusBrussee/caveman",
+  claude_code_hooks_mastery: "https://github.com/disler/claude-code-hooks-mastery",
+  awesome_claude_code: "https://github.com/hesreallyhim/awesome-claude-code",
 };
 
 const REASON_LABEL = {
@@ -565,12 +581,27 @@ function buildRecommendationCard(rec, savingsBucketValue) {
   // Tool label. Advisory recommendations intentionally carry an empty
   // PrimaryToolID; render those as actions instead of blank tool cards.
   const toolID = typeof rec.primary_tool_id === "string" ? rec.primary_tool_id : "";
+  const toolName = typeof rec.primary_tool_name === "string" ? rec.primary_tool_name : "";
   const toolEl = document.createElement("div");
   toolEl.className = "recommendation-tool";
   toolEl.textContent = toolID.length > 0
-    ? labelFrom(TOOL_LABEL, toolID, "Unknown tool")
+    ? (toolName.length > 0 ? toolName : labelFrom(TOOL_LABEL, toolID, "Unknown tool"))
     : advisoryRecommendationLabel(rec);
   card.appendChild(toolEl);
+
+  const reportSourceURL = typeof rec.primary_tool_url === "string" ? rec.primary_tool_url : "";
+  const sourceURL = reportSourceURL.startsWith("https://")
+    ? reportSourceURL
+    : (toolID.length > 0 && Object.hasOwn(TOOL_URL, toolID) ? TOOL_URL[toolID] : "");
+  if (sourceURL.length > 0) {
+    const source = document.createElement("a");
+    source.className = "recommendation-source";
+    source.href = sourceURL;
+    source.rel = "noopener noreferrer";
+    source.target = "_blank";
+    source.textContent = sourceURL;
+    card.appendChild(source);
+  }
 
   // Optional savings-bucket badge (Primary only).
   if (typeof savingsBucketValue === "string" && savingsBucketValue.length > 0) {

@@ -31,7 +31,7 @@ type ToolID string
 // in any observable way (added/removed tool, field edit, ordering
 // change). NFR-005 in spec.md gates this; a CI test compares the live
 // value to a checked-in golden constant.
-const registryVersion = "phase-a-2026-05-19"
+const registryVersion = "phase-a-2026-05-20-tool-url-audit"
 
 // TokenSavingTool is one immutable registry entry. The struct shape is
 // frozen by contracts/token_saving_engine_go_api.md.
@@ -208,7 +208,7 @@ var registry = []TokenSavingTool{
 	// ── shell_output_reducer ────────────────────────────────────────
 	{
 		ID:                  "rtk",
-		DisplayName:         "rtk",
+		DisplayName:         "RTK (Rust Token Killer, rtk-ai/rtk)",
 		SourceURL:           "https://github.com/rtk-ai/rtk",
 		Category:            "shell",
 		RecommendationClass: "shell_output_reducer",
@@ -216,12 +216,12 @@ var registry = []TokenSavingTool{
 		DetectorSources:     []EvidenceSource{"cli_presence", "hook_configured", "log_active_command"},
 		InstallRisk:         "high",
 		DataMovementRisk:    "high",
-		RollbackGuidance:    "Remove the rtk hook from `.claude/settings.json` and restart the session.",
+		RollbackGuidance:    "Remove the RTK hook from `.claude/settings.json` and restart the session.",
 		FreeReportAllowed:   true,
 		PaidPackAllowed:     true,
 		ResearchOnly:        false,
 		InstallPolicy:       "recommend_with_waiver",
-		Notes:               "Rewrites shell command execution; FR-010 state-machine driven; ships with explicit waiver UI.",
+		Notes:               "Rewrites shell command execution. This is github.com/rtk-ai/rtk, not the unrelated npm package named rtk.",
 	},
 	{
 		ID:                  "leanctx",
@@ -565,7 +565,7 @@ func AllTools() []TokenSavingTool {
 }
 
 // RegistryVersion returns the registry's stable identifier (e.g.
-// "phase-a-2026-05-19"). The value changes only when the registry
+// "phase-a-2026-05-20-tool-url-audit"). The value changes only when the registry
 // literal changes; a CI test guards this invariant (NFR-005).
 func RegistryVersion() string {
 	return registryVersion

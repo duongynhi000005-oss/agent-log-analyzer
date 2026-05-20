@@ -620,6 +620,12 @@ pre {
   font-weight: 600;
   font-size: 1.05em;
 }
+.recommendation-source {
+  justify-self: start;
+  color: var(--green);
+  font-size: 0.82em;
+  overflow-wrap: anywhere;
+}
 .recommendation-savings-bucket {
   justify-self: start;
   font-size: 0.8em;

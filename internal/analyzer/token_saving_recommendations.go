@@ -300,13 +300,15 @@ func buildRecommendation(
 		counts[src] = entry.Sources[src]
 	}
 	return &TokenSavingRecommendation{
-		PrimaryToolID:  cand.ID,
-		Reason:         reason,
-		SignalIDs:      signalIDs,
-		Confidence:     conf,
-		RiskLevel:      cand.InstallRisk,
-		InstallPolicy:  cand.InstallPolicy,
-		EvidenceCounts: counts,
+		PrimaryToolID:   cand.ID,
+		PrimaryToolName: cand.DisplayName,
+		PrimaryToolURL:  cand.SourceURL,
+		Reason:          reason,
+		SignalIDs:       signalIDs,
+		Confidence:      conf,
+		RiskLevel:       cand.InstallRisk,
+		InstallPolicy:   cand.InstallPolicy,
+		EvidenceCounts:  counts,
 	}
 }
 

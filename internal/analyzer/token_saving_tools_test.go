@@ -1,7 +1,9 @@
 package analyzer
 
 import (
+	"net/url"
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -151,6 +153,33 @@ func TestRegistryInvariants(t *testing.T) {
 	}
 }
 
+func TestRecommendableToolsHavePreciseSourceURLs(t *testing.T) {
+	for _, tool := range AllTools() {
+		switch tool.InstallPolicy {
+		case PolicyBundle, PolicyRecommend, PolicyRecommendWithWaiver:
+			if !isHTTPSRegistryURL(tool.SourceURL) {
+				t.Errorf("recommendable tool %q has non-HTTPS SourceURL %q", tool.ID, tool.SourceURL)
+			}
+		}
+	}
+}
+
+func TestRTKDisambiguatesUnrelatedNPMPackage(t *testing.T) {
+	tool, ok := GetTool("rtk")
+	if !ok {
+		t.Fatal("rtk missing from registry")
+	}
+	if tool.DisplayName != "RTK (Rust Token Killer, rtk-ai/rtk)" {
+		t.Fatalf("rtk DisplayName = %q", tool.DisplayName)
+	}
+	if tool.SourceURL != "https://github.com/rtk-ai/rtk" {
+		t.Fatalf("rtk SourceURL = %q", tool.SourceURL)
+	}
+	if !strings.Contains(tool.Notes, "not the unrelated npm package named rtk") {
+		t.Fatalf("rtk Notes must disambiguate npm package: %q", tool.Notes)
+	}
+}
+
 func TestRegistryAllowlistCoverage(t *testing.T) {
 	// Step 1: brief allowlist has no internal duplicates.
 	seenBrief := make(map[ToolID]int, len(briefAllowlist))
@@ -196,9 +225,14 @@ func TestRegistryAllowlistCoverage(t *testing.T) {
 }
 
 func TestRegistryVersionConstant(t *testing.T) {
-	if got, want := RegistryVersion(), "phase-a-2026-05-19"; got != want {
+	if got, want := RegistryVersion(), "phase-a-2026-05-20-tool-url-audit"; got != want {
 		t.Errorf("RegistryVersion() = %q, want %q", got, want)
 	}
+}
+
+func isHTTPSRegistryURL(raw string) bool {
+	u, err := url.Parse(raw)
+	return err == nil && u.Scheme == "https" && u.Host != ""
 }
 
 func TestAllToolsSortedByClassAndRank(t *testing.T) {

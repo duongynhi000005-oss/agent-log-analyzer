@@ -2,6 +2,7 @@ package remediation
 
 import (
 	"encoding/json"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -102,8 +103,53 @@ func TestGenerateCreatesClaudePluginArtifact(t *testing.T) {
 			t.Fatalf("missing vetted recommendation %s: %#v", want, artifact.VettedRecommendations)
 		}
 	}
+	for _, recommendation := range artifact.VettedRecommendations {
+		if !isHTTPSURL(recommendation.Source) {
+			t.Fatalf("recommendation %s has non-URL source %q", recommendation.ID, recommendation.Source)
+		}
+	}
 	if !strings.Contains(artifact.RequiredAcknowledgment, "at my own risk") {
 		t.Fatalf("expected liability acknowledgment, got %q", artifact.RequiredAcknowledgment)
+	}
+}
+
+func TestToolRecommendationsUsePreciseSources(t *testing.T) {
+	report := analyzer.Report{
+		Findings: []analyzer.Finding{
+			{ID: "tool_output_bloat"},
+			{ID: "repeated_file_reads"},
+			{ID: "retry_loop"},
+		},
+		Ecosystem: analyzer.Ecosystem{
+			PackageManagers: []string{"npm", "pip", "go", "cargo", "composer"},
+			VersionControl:  "git",
+			MCPServersKnown: []string{"notion", "linear", "sentry", "supabase"},
+		},
+	}
+
+	recommendations := toolingRecommendations(report)
+	if len(recommendations) == 0 {
+		t.Fatal("expected recommendations")
+	}
+
+	for _, recommendation := range recommendations {
+		if !isHTTPSURL(recommendation.Source) {
+			t.Errorf("recommendation %s source = %q, want precise HTTPS URL", recommendation.ID, recommendation.Source)
+		}
+		if strings.Contains(recommendation.Source, "official marketplace") {
+			t.Errorf("recommendation %s still uses generic source text: %q", recommendation.ID, recommendation.Source)
+		}
+	}
+
+	rtk := recommendationByID(recommendations, "rtk")
+	if rtk == nil {
+		t.Fatal("expected RTK recommendation for tool_output_bloat")
+	}
+	if rtk.Source != sourceRTK {
+		t.Fatalf("rtk source = %q, want %q", rtk.Source, sourceRTK)
+	}
+	if !strings.Contains(rtk.Why, "rtk-ai/rtk") || !strings.Contains(rtk.BinaryInstallHint, "unrelated npm package named rtk") {
+		t.Fatalf("RTK recommendation must disambiguate from npm rtk: %#v", *rtk)
 	}
 }
 
@@ -476,6 +522,20 @@ func containsRecommendation(artifact Artifact, id string) bool {
 		}
 	}
 	return false
+}
+
+func recommendationByID(recommendations []ToolRecommendation, id string) *ToolRecommendation {
+	for i := range recommendations {
+		if recommendations[i].ID == id {
+			return &recommendations[i]
+		}
+	}
+	return nil
+}
+
+func isHTTPSURL(raw string) bool {
+	u, err := url.Parse(raw)
+	return err == nil && u.Scheme == "https" && u.Host != ""
 }
 
 func mustJSON(t *testing.T, value any) string {

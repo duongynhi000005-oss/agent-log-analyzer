@@ -260,6 +260,8 @@ func sortedSignalIDs(in []Signal) []Signal {
 type TokenSavingRecommendation struct {
 	RecommendationID string                 `json:"recommendation_id"`
 	PrimaryToolID    ToolID                 `json:"primary_tool_id"`
+	PrimaryToolName  string                 `json:"primary_tool_name,omitempty"`
+	PrimaryToolURL   string                 `json:"primary_tool_url,omitempty"`
 	SkippedToolIDs   []ToolID               `json:"skipped_tool_ids,omitempty"`
 	Reason           Reason                 `json:"reason"`
 	SignalIDs        []Signal               `json:"signal_ids"`

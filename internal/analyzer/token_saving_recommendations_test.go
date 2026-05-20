@@ -97,6 +97,11 @@ func recommendationAllowlist() map[string]bool {
 	allow := map[string]bool{}
 	for _, t := range AllTools() {
 		allow[string(t.ID)] = true
+		for _, safeToolValue := range []string{t.DisplayName, t.SourceURL} {
+			for _, tok := range regexp.MustCompile(`[A-Za-z0-9_]+`).FindAllString(safeToolValue, -1) {
+				allow[tok] = true
+			}
+		}
 	}
 	for _, v := range allToolStates() {
 		allow[string(v)] = true
@@ -123,7 +128,7 @@ func recommendationAllowlist() map[string]bool {
 		allow[string(v)] = true
 	}
 	for _, v := range []string{
-		"recommendation_id", "primary_tool_id", "skipped_tool_ids",
+		"recommendation_id", "primary_tool_id", "primary_tool_name", "primary_tool_url", "skipped_tool_ids",
 		"reason", "signal_ids", "confidence", "risk_level",
 		"install_policy", "evidence_counts", "tool_id", "for_signal",
 		"primary", "secondary", "skipped", "registry_version",
@@ -137,7 +142,7 @@ func recommendationAllowlist() map[string]bool {
 	}
 	// Decompose every allowlisted token using the same split rule the
 	// scanner applies (split on '.' and '-'; keep '_' inside tokens) so
-	// that compound version strings like `phase-a-2026-05-19` and
+	// that compound version strings like `phase-a-2026-05-20-tool-url-audit` and
 	// `v0.1-phase-a` contribute each of their sub-tokens.
 	splitRe := regexp.MustCompile(`[.\-]`)
 	atoms := []string{}
@@ -176,7 +181,7 @@ func recommendationAllowlist() map[string]bool {
 // '_' is part of a token so signal/enum names like `no_usage_visibility`
 // stay whole. '.' is a separator so `recommendation_id` IDs like
 // `rec.usage_visibility.ccusage.<sig>` decompose into per-segment tokens.
-// '-' is a separator so compound version strings like `phase-a-2026-05-19`
+// '-' is a separator so compound version strings like `phase-a-2026-05-20-tool-url-audit`
 // decompose into per-piece tokens (all individually allowlisted via the
 // atom decomposer inside recommendationAllowlist).
 func findNonAllowlistedSubstrings(jsonBlob []byte) []string {

@@ -2,6 +2,8 @@
   "primary": {
     "recommendation_id": "rec.usage_visibility.ccusage.no_usage_visibility",
     "primary_tool_id": "ccusage",
+    "primary_tool_name": "ccusage",
+    "primary_tool_url": "https://github.com/ryoppippi/ccusage",
     "reason": "absent",
     "signal_ids": [
       "no_usage_visibility"
@@ -23,7 +25,7 @@
     "install_policy": "recommend",
     "evidence_counts": {}
   },
-  "registry_version": "phase-a-2026-05-19",
+  "registry_version": "phase-a-2026-05-20-tool-url-audit",
   "engine_version": "v0.1-phase-a",
   "signals": [
     "mcp_skill_bloat",

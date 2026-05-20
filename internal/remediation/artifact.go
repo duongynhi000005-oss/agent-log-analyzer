@@ -15,6 +15,31 @@ const GeneratorVersion = "0.1.0"
 
 var safeValueRE = regexp.MustCompile(`^[a-z0-9_.:-]+$`)
 
+const (
+	sourceAgentAnalyzerMatrix  = "https://github.com/Priivacy-ai/agent-log-analyzer/blob/main/docs/remediation/token-saving-tooling-matrix.md"
+	sourceAnthropicPlugins     = "https://code.claude.com/docs/en/discover-plugins"
+	sourceAwesomeClaudeCode    = "https://github.com/hesreallyhim/awesome-claude-code"
+	sourceClaudeContext        = "https://github.com/zilliztech/claude-context"
+	sourceClaudeHooksMastery   = "https://github.com/disler/claude-code-hooks-mastery"
+	sourceClaudeTokenEfficient = "https://github.com/drona23/claude-token-efficient"
+	sourceContextMode          = "https://github.com/mksglu/context-mode"
+	sourceCCStatusline         = "https://github.com/sirmalloc/ccstatusline"
+	sourceCCUsage              = "https://github.com/ryoppippi/ccusage"
+	sourceGrepAI               = "https://github.com/yoanbernabeu/grepai"
+	sourceRTK                  = "https://github.com/rtk-ai/rtk"
+	sourceUsageMonitor         = "https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor"
+	sourceGitHubPlugin         = "https://claude.com/plugins/github"
+	sourceLinearPlugin         = "https://claude.com/plugins/linear"
+	sourceNotionPlugin         = "https://claude.com/plugins/notion"
+	sourcePHPPlugin            = "https://claude.com/plugins/php-lsp"
+	sourcePyrightPlugin        = "https://claude.com/plugins/pyright-lsp"
+	sourceRustAnalyzerPlugin   = "https://claude.com/plugins/rust-analyzer-lsp"
+	sourceSentryPlugin         = "https://claude.com/plugins/sentry"
+	sourceSupabasePlugin       = "https://claude.com/plugins/supabase"
+	sourceTypeScriptPlugin     = "https://claude.com/plugins/typescript-lsp"
+	sourceGoplsPlugin          = "https://claude.com/plugins/gopls-lsp"
+)
+
 // artifactPrefixToCategory maps the public-artifact prefix space used in
 // SourceSummary.KnownEcosystem to the analyzer's signature-registry
 // category keys (see analyzer.KnownEcosystemIDs). Keeping a single source
@@ -250,14 +275,14 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 		Category:       "metrics_telemetry",
 		Why:            "Parse local Claude Code JSONL logs for independent token, cost, and burn-rate visibility before and after optimization.",
 		InstallCommand: "npx ccusage@latest",
-		Source:         "https://github.com/ryoppippi/ccusage",
+		Source:         sourceCCUsage,
 	})
 	add(ToolRecommendation{
 		ID:             "awesome-claude-code",
 		Category:       "ecosystem_index",
 		Why:            "Use as a monitored discovery source for Claude Code skills, hooks, plugins, statuslines, and orchestration tools; do not install from it directly.",
 		InstallCommand: "Review https://github.com/hesreallyhim/awesome-claude-code before adding any new third-party tool to the allowlist.",
-		Source:         "https://github.com/hesreallyhim/awesome-claude-code",
+		Source:         sourceAwesomeClaudeCode,
 	})
 
 	if findingIDs["tool_output_bloat"] || findingIDs["context_growth_spikes"] {
@@ -266,23 +291,23 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 			Category:       "context_defense",
 			Why:            "Route large tool outputs through sandboxed processing and summaries instead of flooding Claude's live context.",
 			InstallCommand: "/plugin marketplace add mksglu/context-mode\n/plugin install context-mode@context-mode\n/reload-plugins\n/context-mode:ctx-doctor",
-			Source:         "https://github.com/mksglu/context-mode",
+			Source:         sourceContextMode,
 		})
 		add(ToolRecommendation{
 			ID:                "rtk",
 			Category:          "advanced_shell_compression",
-			Why:               "Compress common shell command output before it reaches Claude; useful when terminal output is a dominant waste source.",
-			InstallCommand:    "brew install rtk\nrtk init -g",
+			Why:               "RTK (Rust Token Killer, rtk-ai/rtk) compresses common shell command output before it reaches Claude; useful when terminal output is a dominant waste source.",
+			InstallCommand:    "Review https://github.com/rtk-ai/rtk first. If approved on macOS: brew install rtk\nrtk init -g",
 			RequiredBinary:    "rtk",
-			BinaryInstallHint: "macOS: brew install rtk. Linux/macOS fallback: curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh",
-			Source:            "https://github.com/rtk-ai/rtk",
+			BinaryInstallHint: "This is github.com/rtk-ai/rtk. Do not install the unrelated npm package named rtk.",
+			Source:            sourceRTK,
 		})
 		add(ToolRecommendation{
 			ID:             "claude-token-efficient",
 			Category:       "claude_md_optimization",
 			Why:            "Reduce accumulated assistant verbosity, but only merge the smallest useful rules because persistent CLAUDE.md text adds input tokens.",
 			InstallCommand: "Ask Claude to review https://github.com/drona23/claude-token-efficient and propose a minimal CLAUDE.md diff; do not overwrite existing CLAUDE.md automatically.",
-			Source:         "https://github.com/drona23/claude-token-efficient",
+			Source:         sourceClaudeTokenEfficient,
 		})
 	}
 
@@ -294,14 +319,14 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 			InstallCommand:    "brew install yoanbernabeu/tap/grepai\ngrepai init\ngrepai watch",
 			RequiredBinary:    "grepai",
 			BinaryInstallHint: "Requires an embedding provider such as Ollama; install with curl script only after reviewing the GitHub source.",
-			Source:            "https://github.com/yoanbernabeu/grepai",
+			Source:            sourceGrepAI,
 		})
 		add(ToolRecommendation{
 			ID:             "claude-context",
 			Category:       "semantic_retrieval_mcp",
 			Why:            "Add MCP semantic code retrieval for large repositories where brute-force file exploration causes repeated rereads.",
 			InstallCommand: "claude mcp add claude-context -e OPENAI_API_KEY=<openai-key> -e MILVUS_ADDRESS=<zilliz-endpoint> -e MILVUS_TOKEN=<zilliz-token> -- npx @zilliz/claude-context-mcp@latest",
-			Source:         "https://github.com/zilliztech/claude-context",
+			Source:         sourceClaudeContext,
 		})
 	}
 
@@ -311,7 +336,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 			Category:       "implementation_reference",
 			Why:            "Use as a reference for SessionStart, PostToolUse, PreCompact, Stop, and UserPromptSubmit patterns when building workflow discipline.",
 			InstallCommand: "Review https://github.com/disler/claude-code-hooks-mastery before enabling any new hook behavior.",
-			Source:         "https://github.com/disler/claude-code-hooks-mastery",
+			Source:         sourceClaudeHooksMastery,
 		})
 	}
 
@@ -323,7 +348,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 			InstallCommand:    "Review https://github.com/sirmalloc/ccstatusline and install only if it does not conflict with Context Mode or the user's existing statusline.",
 			RequiredBinary:    "ccstatusline",
 			BinaryInstallHint: "Prefer the repository's current release/install instructions over copied commands.",
-			Source:            "https://github.com/sirmalloc/ccstatusline",
+			Source:            sourceCCStatusline,
 		})
 	}
 
@@ -334,7 +359,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 		InstallCommand:    "uv tool install claude-monitor\nclaude-monitor",
 		RequiredBinary:    "claude-monitor",
 		BinaryInstallHint: "Alternative: pip install claude-monitor.",
-		Source:            "https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor",
+		Source:            sourceUsageMonitor,
 	})
 
 	for _, manager := range report.Ecosystem.PackageManagers {
@@ -347,7 +372,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 				InstallCommand:    "/plugin install typescript-lsp@claude-plugins-official",
 				RequiredBinary:    "typescript-language-server",
 				BinaryInstallHint: "npm install -g typescript typescript-language-server",
-				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
+				Source:            sourceTypeScriptPlugin,
 			})
 		case "pip", "poetry", "uv":
 			add(ToolRecommendation{
@@ -357,7 +382,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 				InstallCommand:    "/plugin install pyright-lsp@claude-plugins-official",
 				RequiredBinary:    "pyright-langserver",
 				BinaryInstallHint: "npm install -g pyright",
-				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
+				Source:            sourcePyrightPlugin,
 			})
 		case "go":
 			add(ToolRecommendation{
@@ -367,7 +392,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 				InstallCommand:    "/plugin install gopls-lsp@claude-plugins-official",
 				RequiredBinary:    "gopls",
 				BinaryInstallHint: "go install golang.org/x/tools/gopls@latest",
-				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
+				Source:            sourceGoplsPlugin,
 			})
 		case "cargo":
 			add(ToolRecommendation{
@@ -377,7 +402,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 				InstallCommand:    "/plugin install rust-analyzer-lsp@claude-plugins-official",
 				RequiredBinary:    "rust-analyzer",
 				BinaryInstallHint: "rustup component add rust-analyzer",
-				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
+				Source:            sourceRustAnalyzerPlugin,
 			})
 		case "composer":
 			add(ToolRecommendation{
@@ -387,7 +412,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 				InstallCommand:    "/plugin install php-lsp@claude-plugins-official",
 				RequiredBinary:    "intelephense",
 				BinaryInstallHint: "npm install -g intelephense",
-				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
+				Source:            sourcePHPPlugin,
 			})
 		}
 	}
@@ -398,17 +423,18 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 			Category:       "mcp_integration",
 			Why:            "Fetch structured issue and PR context without pasting browser output or long terminal dumps into Claude.",
 			InstallCommand: "/plugin install github@claude-plugins-official",
-			Source:         "Anthropic Claude Code official marketplace external integrations documentation",
+			Source:         sourceGitHubPlugin,
 		})
 	}
 	for _, plugin := range []struct {
-		id  string
-		why string
+		id     string
+		why    string
+		source string
 	}{
-		{"notion", "Pull structured project documentation directly instead of repeatedly searching or pasting docs."},
-		{"linear", "Pull structured ticket context directly instead of copying long issue text into the session."},
-		{"sentry", "Inspect structured errors and traces instead of dumping logs into context."},
-		{"supabase", "Use a configured infrastructure integration for project metadata instead of ad hoc shell/API output."},
+		{"notion", "Pull structured project documentation directly instead of repeatedly searching or pasting docs.", sourceNotionPlugin},
+		{"linear", "Pull structured ticket context directly instead of copying long issue text into the session.", sourceLinearPlugin},
+		{"sentry", "Inspect structured errors and traces instead of dumping logs into context.", sourceSentryPlugin},
+		{"supabase", "Use a configured infrastructure integration for project metadata instead of ad hoc shell/API output.", sourceSupabasePlugin},
 	} {
 		if containsString(report.Ecosystem.MCPServersKnown, plugin.id) || containsString(report.Ecosystem.KnownPlugins, plugin.id) {
 			add(ToolRecommendation{
@@ -416,7 +442,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 				Category:       "mcp_integration",
 				Why:            plugin.why,
 				InstallCommand: "/plugin install " + plugin.id + "@claude-plugins-official",
-				Source:         "Anthropic Claude Code official marketplace external integrations documentation",
+				Source:         plugin.source,
 			})
 		}
 	}
@@ -427,7 +453,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 			Category:       "manual_review",
 			Why:            "No high-confidence language-server recommendation was inferred from the sanitized aggregate report. Inspect package manifests before installing code intelligence.",
 			InstallCommand: "Ask Claude to inspect package manifests and recommend only official code-intelligence plugins with matching binaries.",
-			Source:         "Agent Analyzer deterministic fallback",
+			Source:         sourceAgentAnalyzerMatrix,
 		})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })

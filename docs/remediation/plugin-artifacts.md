@@ -85,7 +85,7 @@ Core open-source recommendations:
 - `grepai` and `claude-context` for repeated-reread/retrieval problems
 - `claude-token-efficient` as a minimal CLAUDE.md diff, never an overwrite
 - `ccstatusline` and Claude Code Usage Monitor as out-of-context awareness tools
-- `rtk` only as an advanced shell-compression option because it rewrites shell command execution
+- `RTK (Rust Token Killer, rtk-ai/rtk)` only as an advanced shell-compression option because it rewrites shell command execution; never install npm `rtk`, which is an unrelated release/changelog package
 
 Official Claude Code plugin allowlist:
 

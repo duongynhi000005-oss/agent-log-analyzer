@@ -222,6 +222,8 @@
     "primary": {
       "recommendation_id": "rec.usage_visibility.ccusage.no_usage_visibility",
       "primary_tool_id": "ccusage",
+      "primary_tool_name": "ccusage",
+      "primary_tool_url": "https://github.com/ryoppippi/ccusage",
       "reason": "absent",
       "signal_ids": [
         "no_usage_visibility"
@@ -234,6 +236,8 @@
     "secondary": {
       "recommendation_id": "rec.shell_output_reducer.rtk.tool_output_bloat",
       "primary_tool_id": "rtk",
+      "primary_tool_name": "RTK (Rust Token Killer, rtk-ai/rtk)",
+      "primary_tool_url": "https://github.com/rtk-ai/rtk",
       "reason": "absent",
       "signal_ids": [
         "tool_output_bloat"
@@ -243,7 +247,7 @@
       "install_policy": "recommend_with_waiver",
       "evidence_counts": {}
     },
-    "registry_version": "phase-a-2026-05-19",
+    "registry_version": "phase-a-2026-05-20-tool-url-audit",
     "engine_version": "v0.1-phase-a",
     "signals": [
       "no_usage_visibility",

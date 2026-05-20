@@ -2,6 +2,8 @@
 
 This matrix is the starting allowlist for paid remediation recommendations. The plugin may recommend these tools only with explicit user approval and the waiver gate. Installation is never automatic.
 
+Every installable recommendation must carry a precise source URL. Do not recommend a bare package name when that name can resolve to a different package in another ecosystem.
+
 ## Tier 1: Bundle Or Strongly Recommend
 
 | Tool | Source | Role | Product Decision |
@@ -26,7 +28,7 @@ This matrix is the starting allowlist for paid remediation recommendations. The 
 
 | Tool | Source | Role | Product Decision |
 | --- | --- | --- | --- |
-| RTK | https://github.com/rtk-ai/rtk | Shell-output compression through command proxying | Promising for severe shell-output bloat. Treat as advanced because it rewrites command execution through hooks. |
+| RTK (Rust Token Killer, `rtk-ai/rtk`) | https://github.com/rtk-ai/rtk | Shell-output compression through command proxying | Advanced/waiver-gated only because it rewrites command execution through hooks. Never describe this as the npm package `rtk`; that package is an unrelated release/changelog tool. Homebrew `rtk` currently points at `rtk-ai/rtk`. |
 | Caveman | https://github.com/JuliusBrussee/caveman | Response terseness/compression | Research only. Reports suggest configuration confusion and inconsistent activation. |
 | memsearch | https://github.com/zilliztech/memsearch | Persistent cross-agent memory and retrieval | Research only. Promising for sparse memory, but too stateful for the initial low-risk paid pack. |
 
@@ -34,7 +36,7 @@ This matrix is the starting allowlist for paid remediation recommendations. The 
 
 | Analyzer Signal | Recommend |
 | --- | --- |
-| `tool_output_bloat` | Context Mode, RTK, claude-token-efficient, ccstatusline |
+| `tool_output_bloat` | Context Mode, RTK (`rtk-ai/rtk`, not npm `rtk`), claude-token-efficient, ccstatusline |
 | `repeated_file_reads` | grepai, claude-context, language-server/code-intelligence plugins |
 | `retry_loop` | hooks architecture reference, statusline awareness, session hygiene skill |
 | `context_growth_spikes` | Context Mode, ccstatusline, session hygiene, claude-token-efficient review |
@@ -44,6 +46,8 @@ This matrix is the starting allowlist for paid remediation recommendations. The 
 
 - Prefer plugin marketplace or package-manager installs over curl scripts.
 - Curl install scripts are allowed only as reviewed fallback instructions, never silent defaults.
+- Any generated recommendation must include a canonical source URL. Generic strings like "official marketplace docs" are not sufficient when a concrete plugin page exists.
+- RTK must always be written as `RTK (Rust Token Killer, rtk-ai/rtk)` or include `https://github.com/rtk-ai/rtk`; never tell users to install npm `rtk`.
 - External hosted retrieval tools must disclose API keys, data movement, and vendor dependency.
 - Local semantic search tools must disclose indexing cost, storage location, and embedding provider.
 - Tools that rewrite shell commands are advanced-only and must be separately approved.
@@ -58,6 +62,40 @@ This matrix doc and the registry are intentionally complementary: when a tool's 
 Phase A enforces a dedupe-aware recommendation contract: for any given analyzed session, the engine emits at most one primary and at most one secondary token-saving recommendation. Tools that telemetry classifies as `active_high` for a given signal are treated as already in effect and skipped rather than re-recommended, so the user is never asked to install something they are already running successfully.
 
 See `docs/remediation/token-saving-recommendation-engine.md` for the full Phase A state model, rule precedence, signal-to-tool mapping, and the additive contract surface that downstream artifacts may embed.
+
+## Source URL Audit (2026-05-20)
+
+Verified repository URLs with `git ls-remote` for the GitHub-hosted recommendations:
+
+- `https://github.com/ryoppippi/ccusage`
+- `https://github.com/sirmalloc/ccstatusline`
+- `https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor`
+- `https://github.com/LyndonWangWork/Claude-Code-Usage-Tracker`
+- `https://github.com/mksglu/context-mode`
+- `https://github.com/rtk-ai/rtk`
+- `https://github.com/zilliztech/claude-context`
+- `https://github.com/yoanbernabeu/grepai`
+- `https://github.com/zilliztech/memsearch`
+- `https://github.com/drona23/claude-token-efficient`
+- `https://github.com/JuliusBrussee/caveman`
+- `https://github.com/disler/claude-code-hooks-mastery`
+- `https://github.com/hesreallyhim/awesome-claude-code`
+- `https://github.com/anthropics/claude-plugins-official`
+
+Verified current official Claude plugin pages used by paid artifacts:
+
+- `https://claude.com/plugins/typescript-lsp`
+- `https://claude.com/plugins/pyright-lsp`
+- `https://claude.com/plugins/gopls-lsp`
+- `https://claude.com/plugins/rust-analyzer-lsp`
+- `https://claude.com/plugins/php-lsp`
+- `https://claude.com/plugins/github`
+- `https://claude.com/plugins/notion`
+- `https://claude.com/plugins/linear`
+- `https://claude.com/plugins/sentry`
+- `https://claude.com/plugins/supabase`
+
+RTK disambiguation check: `npm view rtk` resolves to `github.com/cliffano/rtk` and describes a release/version/changelog tool. `@rtk-ai/rtk` is not published on npm. Therefore Agent Analyzer must never recommend npm installation for RTK.
 
 ## See also
 
