@@ -76,7 +76,7 @@ func buildMux(store app.APIStore) http.Handler {
 	mux.HandleFunc("POST /api/paid-uploads/{id}/finalize", finalizeTokenUploadHandler(store))
 	mux.HandleFunc("GET /api/public-reports/{id}/{token}", getPublicReportHandler(store))
 	mux.HandleFunc("GET /api/public-artifacts/{id}/{token}/plugin.zip", getPublicArtifactHandler(store))
-	mux.HandleFunc("GET /r/{id}/{token}", reportPageHandler())
+	mux.HandleFunc("GET /r/{id}/{token}", reportPageHandler(store))
 	mux.HandleFunc("GET /api/jobs/{id}", getJobHandler(store))
 	mux.Handle("/", http.FileServer(http.Dir("web")))
 	return mux
@@ -585,12 +585,6 @@ func getPublicArtifactHandler(store app.APIStore) http.HandlerFunc {
 		w.Header().Set("Cache-Control", "no-store")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(buffer.Bytes())
-	}
-}
-
-func reportPageHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "web/index.html")
 	}
 }
 

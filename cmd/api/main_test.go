@@ -105,6 +105,135 @@ func TestGetPublicArtifactRequiresPaidWaiver(t *testing.T) {
 	}
 }
 
+func TestReportPageServerRendersCompletedReport(t *testing.T) {
+	store := fakeStore{
+		job: app.Job{
+			ID:              "job-1234567890",
+			Status:          app.StatusCompleted,
+			ScanType:        app.ScanTypeSingle,
+			ReportTokenHash: tokenHash("report-token"),
+		},
+		report: analyzer.Report{
+			JobID:   "job-1234567890",
+			Version: "test",
+			Score:   42,
+			EstimatedWaste: analyzer.WasteRange{
+				Low:  22,
+				High: 30,
+			},
+			Metrics: analyzer.Metrics{
+				Turns:            12,
+				EstimatedTokens:  12000,
+				ToolOutputTokens: 4000,
+			},
+			Findings: []analyzer.Finding{{
+				ID:             "tool_output_bloat",
+				Title:          "Large shell/tool output overhead",
+				Severity:       "high",
+				CostImpact:     "high",
+				Evidence:       analyzer.FindingEvidence{TokenShare: 68},
+				Recommendation: "Cap command output.",
+			}},
+			Timeline: []analyzer.TimelinePoint{{
+				Turn:            10,
+				EstimatedTokens: 10000,
+				ToolTokens:      3000,
+				Rereads:         2,
+				Retries:         1,
+			}},
+			ImmediateFixes: []string{"Use narrower shell commands."},
+			Ecosystem: analyzer.Ecosystem{
+				Client:          "claude-code",
+				OperatingSystem: "macos",
+				MCPServersKnown: []string{"github"},
+				ToolingUtilization: analyzer.ToolingUtilization{
+					MCP: analyzer.MCPUtilization{
+						WarningBand:              "high",
+						UtilizationRatioPct:      10,
+						ServerCountBucket:        "many",
+						ContextTokenBucket:       "15k_50k",
+						CallCount:                3,
+						UniqueKnownCalledIDs:     []string{"github"},
+						UniqueUnknownCalledCount: 1,
+					},
+				},
+			},
+			SecurityReceipt: analyzer.SecurityReceipt{
+				SecretsRedacted: 3,
+				RawLogTTL:       "not uploaded",
+			},
+			Recommendation: &analyzer.RecommendationSet{
+				Primary: &analyzer.TokenSavingRecommendation{
+					PrimaryToolID:   "rtk",
+					PrimaryToolName: "RTK (Rust Token Killer, rtk-ai/rtk)",
+					PrimaryToolURL:  "https://github.com/rtk-ai/rtk",
+					Reason:          analyzer.ReasonAbsent,
+					SignalIDs:       []analyzer.Signal{analyzer.SignalToolOutputBloat},
+					Confidence:      analyzer.ConfidenceLow,
+					RiskLevel:       analyzer.RiskHigh,
+					InstallPolicy:   analyzer.PolicyRecommendWithWaiver,
+				},
+				RegistryVersion: analyzer.RegistryVersion(),
+				EngineVersion:   analyzer.EngineVersion(),
+			},
+		},
+	}
+	req := httptest.NewRequest(http.MethodGet, "/r/job-1234567890/report-token", nil)
+	req.SetPathValue("id", "job-1234567890")
+	req.SetPathValue("token", "report-token")
+	rec := httptest.NewRecorder()
+
+	reportPageHandler(store).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if contentType := rec.Header().Get("Content-Type"); !strings.Contains(contentType, "text/html") {
+		t.Fatalf("expected html content type, got %q", contentType)
+	}
+	if cacheControl := rec.Header().Get("Cache-Control"); cacheControl != "no-store" {
+		t.Fatalf("expected no-store cache control, got %q", cacheControl)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{
+		"42",
+		"Large shell/tool output overhead",
+		"Use narrower shell commands.",
+		"RTK (Rust Token Killer, rtk-ai/rtk)",
+		"https://github.com/rtk-ai/rtk",
+		"Raw log TTL: not uploaded",
+		"MCP:",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("server-rendered report missing %q:\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, "Find out what&#39;s wasting your Claude Code tokens") || strings.Contains(body, "Run the local analyzer") {
+		t.Fatalf("server-rendered report returned onboarding shell instead of report: %s", body)
+	}
+}
+
+func TestReportPageRequiresReportToken(t *testing.T) {
+	store := fakeStore{
+		job: app.Job{
+			ID:              "job-1234567890",
+			Status:          app.StatusCompleted,
+			ReportTokenHash: tokenHash("report-token"),
+		},
+		report: analyzer.Report{JobID: "job-1234567890", Version: "test"},
+	}
+	req := httptest.NewRequest(http.MethodGet, "/r/job-1234567890/wrong-token", nil)
+	req.SetPathValue("id", "job-1234567890")
+	req.SetPathValue("token", "wrong-token")
+	rec := httptest.NewRecorder()
+
+	reportPageHandler(store).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected unauthorized, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestGetPublicArtifactReturnsPluginZipForPaidWaiver(t *testing.T) {
 	store := fakeStore{
 		job: app.Job{
