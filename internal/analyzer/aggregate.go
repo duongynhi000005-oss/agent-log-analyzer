@@ -21,8 +21,7 @@ func AggregateReportsWithParserType(jobID string, reports []Report, inputSize in
 	redactions := map[string]int{}
 	ecosystem := Ecosystem{}
 	signals := AnalysisSignals{}
-	timeline := make([]TimelinePoint, 0, len(reports))
-	for index, report := range reports {
+	for _, report := range reports {
 		metrics.Turns += report.Metrics.Turns
 		metrics.EstimatedTokens += report.Metrics.EstimatedTokens
 		metrics.ToolOutputTokens += report.Metrics.ToolOutputTokens
@@ -37,14 +36,8 @@ func AggregateReportsWithParserType(jobID string, reports []Report, inputSize in
 		}
 		ecosystem = mergeEcosystems(ecosystem, report.Ecosystem)
 		signals = mergeSignals(signals, report.AnalysisSignals)
-		timeline = append(timeline, TimelinePoint{
-			Turn:            index + 1,
-			EstimatedTokens: metrics.EstimatedTokens,
-			ToolTokens:      metrics.ToolOutputTokens,
-			Rereads:         metrics.Rereads,
-			Retries:         metrics.FailedCommands,
-		})
 	}
+	timeline := aggregateTimeline(reports)
 	signals.SampleConfidence, signals.SampleWarnings = sampleConfidence(len(reports), signals)
 	findings := aggregateFindings(metrics)
 	findings = appendSignalFindings(findings, signals)
@@ -72,6 +65,18 @@ func AggregateReportsWithParserType(jobID string, reports []Report, inputSize in
 	report.AggregateEvent = aggregateEvent(report, parserType, inputSize)
 	AttachRecommendation(&report)
 	return report, nil
+}
+
+func aggregateTimeline(reports []Report) []TimelinePoint {
+	if len(reports) != 1 {
+		return nil
+	}
+	if len(reports[0].Timeline) == 0 {
+		return nil
+	}
+	timeline := make([]TimelinePoint, len(reports[0].Timeline))
+	copy(timeline, reports[0].Timeline)
+	return timeline
 }
 
 func aggregateFindings(metrics Metrics) []Finding {

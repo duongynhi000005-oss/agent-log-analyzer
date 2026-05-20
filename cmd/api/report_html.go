@@ -135,11 +135,13 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
             {{end}}
           </ol>
         </div>
+        {{if not .Report.SourceReports}}
         <div>
           <h2>Session Timeline</h2>
           <p id="timeline-caption" class="timeline-caption">Estimated context size by turn. Highlighted area shows avoidable spend.</p>
           {{timelineChart .Report.Timeline .Report.EstimatedWaste}}
         </div>
+        {{end}}
         {{if .Report.SourceReports}}
         <section class="source-reports">
           <h2>Agent Logs Analyzed</h2>
@@ -172,8 +174,12 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
                 </ol>
               </div>
             </div>
-            <p class="timeline-caption">Context growth for this source.</p>
+            {{if .Timeline}}
+            <p class="timeline-caption">Estimated context size by turn for this source. Highlighted area shows avoidable spend.</p>
             {{timelineChart .Timeline .EstimatedWaste}}
+            {{else}}
+            <p class="timeline-caption">Per-turn timeline unavailable for this aggregated source. Totals above cover {{sourceLogLabel .LogCount}}.</p>
+            {{end}}
           </article>
           {{end}}
         </section>

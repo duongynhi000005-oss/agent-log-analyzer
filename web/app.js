@@ -169,7 +169,13 @@ function renderReport(report) {
     fixes.appendChild(item);
   }
 
-  renderTimeline(report.timeline || [], report.estimated_waste_pct);
+  const timelineSection = document.querySelector("#timeline-section");
+  if ((report.source_reports || []).length > 0) {
+    if (timelineSection) timelineSection.hidden = true;
+  } else {
+    if (timelineSection) timelineSection.hidden = false;
+    renderTimeline(report.timeline || [], report.estimated_waste_pct);
+  }
   renderRecommendation(report);
   renderWorkflowFingerprints(report);
   renderToolingUtilization(report);

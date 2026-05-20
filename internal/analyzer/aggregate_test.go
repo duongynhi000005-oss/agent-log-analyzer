@@ -17,6 +17,64 @@ import (
 	"time"
 )
 
+func TestAggregateReports_DoesNotInventTimelineAcrossReports(t *testing.T) {
+	a := Report{
+		JobID: "a",
+		Metrics: Metrics{
+			Turns:           3,
+			EstimatedTokens: 1000,
+		},
+		Timeline: []TimelinePoint{{
+			Turn:            3,
+			EstimatedTokens: 1000,
+		}},
+	}
+	b := Report{
+		JobID: "b",
+		Metrics: Metrics{
+			Turns:           5,
+			EstimatedTokens: 2000,
+		},
+		Timeline: []TimelinePoint{{
+			Turn:            5,
+			EstimatedTokens: 2000,
+		}},
+	}
+
+	got, err := AggregateReportsWithParserType("merged", []Report{a, b}, 3000, "multi_source")
+	if err != nil {
+		t.Fatalf("AggregateReportsWithParserType: %v", err)
+	}
+	if len(got.Timeline) != 0 {
+		t.Fatalf("aggregate report must not relabel input reports as turns: %#v", got.Timeline)
+	}
+	if got.Metrics.SessionCount != 2 || got.Metrics.EstimatedTokens != 3000 || got.Metrics.Turns != 8 {
+		t.Fatalf("aggregate metrics should still merge totals: %#v", got.Metrics)
+	}
+}
+
+func TestAggregateReports_SingleReportPreservesRealTimeline(t *testing.T) {
+	input := Report{
+		JobID: "single",
+		Metrics: Metrics{
+			Turns:           3,
+			EstimatedTokens: 1000,
+		},
+		Timeline: []TimelinePoint{{
+			Turn:            3,
+			EstimatedTokens: 1000,
+		}},
+	}
+
+	got, err := AggregateReportsWithParserType("merged", []Report{input}, 1000, "paid_bundle")
+	if err != nil {
+		t.Fatalf("AggregateReportsWithParserType: %v", err)
+	}
+	if !reflect.DeepEqual(got.Timeline, input.Timeline) {
+		t.Fatalf("single-report aggregate should preserve real timeline: got %#v want %#v", got.Timeline, input.Timeline)
+	}
+}
+
 // -----------------------------------------------------------------------------
 // FR-007: WorkflowFingerprints merge — row-by-row rules
 // -----------------------------------------------------------------------------
