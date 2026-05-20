@@ -254,6 +254,7 @@ func TestRecentOpenCodeSessions_ReadsMessageDirectoriesAndSkipsTinySessions(t *t
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	root := filepath.Join(home, ".local", "share", "opencode", "storage", "message")
+	partRoot := filepath.Join(home, ".local", "share", "opencode", "storage", "part")
 	tiny := filepath.Join(root, "ses_tiny")
 	big := filepath.Join(root, "ses_big")
 	for _, dir := range []string{tiny, big} {
@@ -262,7 +263,11 @@ func TestRecentOpenCodeSessions_ReadsMessageDirectoriesAndSkipsTinySessions(t *t
 		}
 	}
 	writeLogContent(t, filepath.Join(tiny, "msg_1.json"), "{}")
-	writeMeaningfulLog(t, filepath.Join(big, "msg_1.json"))
+	writeLogContent(t, filepath.Join(big, "msg_big.json"), `{"id":"msg_big","sessionID":"ses_big","role":"assistant","text":"`+strings.Repeat("x", freeAutoMinLogBytes+1024)+`"}`)
+	if err := os.MkdirAll(filepath.Join(partRoot, "msg_big"), 0o700); err != nil {
+		t.Fatalf("mkdir opencode parts: %v", err)
+	}
+	writeLogContent(t, filepath.Join(partRoot, "msg_big", "part_1.json"), `{"id":"part_1","messageID":"msg_big","type":"tool","tool":"bash","state":{"status":"completed","input":{"command":"npm test"},"output":"ok"}}`)
 
 	candidates, err := recentOpenCodeSessions(10, 0, freeAutoMinLogBytes)
 	if err != nil {
@@ -275,8 +280,11 @@ func TestRecentOpenCodeSessions_ReadsMessageDirectoriesAndSkipsTinySessions(t *t
 	if err != nil {
 		t.Fatalf("read opencode session: %v", err)
 	}
-	if !strings.HasSuffix(string(data), "\n") || !strings.Contains(string(data), `"type":"user"`) {
+	if !strings.HasSuffix(string(data), "\n") || !strings.Contains(string(data), `"id":"msg_big"`) {
 		t.Fatalf("expected JSONL message output, got %q", string(data[:min(len(data), 80)]))
+	}
+	if !strings.Contains(string(data), `"type":"tool"`) || !strings.Contains(string(data), `"tool":"bash"`) {
+		t.Fatalf("expected OpenCode part JSONL to be joined, got %q", string(data[:min(len(data), 200)]))
 	}
 }
 

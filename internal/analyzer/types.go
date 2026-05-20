@@ -11,6 +11,7 @@ type Report struct {
 	Redactions      map[string]int     `json:"redactions"`
 	SecurityReceipt SecurityReceipt    `json:"security_receipt"`
 	Timeline        []TimelinePoint    `json:"timeline"`
+	AnalysisSignals AnalysisSignals    `json:"analysis_signals"`
 	ImmediateFixes  []string           `json:"immediate_fixes"`
 	SourceReports   []SourceReport     `json:"source_reports,omitempty"`
 	AggregateEvent  AggregateSafeEvent `json:"aggregate_event"`
@@ -31,6 +32,24 @@ type Metrics struct {
 	ContextGrowthEvents int `json:"context_growth_events"`
 	FailedCommands      int `json:"failed_commands"`
 	SessionCount        int `json:"session_count,omitempty"`
+}
+
+type AnalysisSignals struct {
+	NormalizedEventCount    int      `json:"normalized_event_count"`
+	ToolCallCount           int      `json:"tool_call_count"`
+	ToolResultCount         int      `json:"tool_result_count"`
+	ArgsHashedRetryLoops    int      `json:"args_hashed_retry_loops"`
+	CacheReadTokens         int      `json:"cache_read_tokens"`
+	CacheCreationTokens     int      `json:"cache_creation_tokens"`
+	InputTokens             int      `json:"input_tokens"`
+	OutputTokens            int      `json:"output_tokens"`
+	CacheMissRatioPct       int      `json:"cache_miss_ratio_pct"`
+	CacheInvalidationEvents int      `json:"cache_invalidation_events"`
+	ToolOutputBytes         int      `json:"tool_output_bytes"`
+	PatchLinesAdded         int      `json:"patch_lines_added"`
+	PatchLinesRemoved       int      `json:"patch_lines_removed"`
+	SampleConfidence        string   `json:"sample_confidence"`
+	SampleWarnings          []string `json:"sample_warnings"`
 }
 
 type Finding struct {
@@ -136,15 +155,16 @@ type TimelinePoint struct {
 }
 
 type SourceReport struct {
-	SourceID       string          `json:"source_id"`
-	SourceLabel    string          `json:"source_label"`
-	LogCount       int             `json:"log_count"`
-	Score          int             `json:"score"`
-	EstimatedWaste WasteRange      `json:"estimated_waste_pct"`
-	Metrics        Metrics         `json:"metrics"`
-	Findings       []Finding       `json:"findings"`
-	Timeline       []TimelinePoint `json:"timeline"`
-	ImmediateFixes []string        `json:"immediate_fixes"`
+	SourceID        string          `json:"source_id"`
+	SourceLabel     string          `json:"source_label"`
+	LogCount        int             `json:"log_count"`
+	Score           int             `json:"score"`
+	EstimatedWaste  WasteRange      `json:"estimated_waste_pct"`
+	Metrics         Metrics         `json:"metrics"`
+	Findings        []Finding       `json:"findings"`
+	Timeline        []TimelinePoint `json:"timeline"`
+	AnalysisSignals AnalysisSignals `json:"analysis_signals"`
+	ImmediateFixes  []string        `json:"immediate_fixes"`
 }
 
 type AggregateSafeEvent struct {

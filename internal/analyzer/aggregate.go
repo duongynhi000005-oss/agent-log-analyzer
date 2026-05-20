@@ -20,6 +20,7 @@ func AggregateReportsWithParserType(jobID string, reports []Report, inputSize in
 	metrics.SessionCount = len(reports)
 	redactions := map[string]int{}
 	ecosystem := Ecosystem{}
+	signals := AnalysisSignals{}
 	timeline := make([]TimelinePoint, 0, len(reports))
 	for index, report := range reports {
 		metrics.Turns += report.Metrics.Turns
@@ -35,6 +36,7 @@ func AggregateReportsWithParserType(jobID string, reports []Report, inputSize in
 			redactions[family] += count
 		}
 		ecosystem = mergeEcosystems(ecosystem, report.Ecosystem)
+		signals = mergeSignals(signals, report.AnalysisSignals)
 		timeline = append(timeline, TimelinePoint{
 			Turn:            index + 1,
 			EstimatedTokens: metrics.EstimatedTokens,
@@ -43,7 +45,9 @@ func AggregateReportsWithParserType(jobID string, reports []Report, inputSize in
 			Retries:         metrics.FailedCommands,
 		})
 	}
+	signals.SampleConfidence, signals.SampleWarnings = sampleConfidence(len(reports), signals)
 	findings := aggregateFindings(metrics)
+	findings = appendSignalFindings(findings, signals)
 	score := score(metrics, findings)
 	report := Report{
 		JobID:          jobID,
@@ -60,8 +64,9 @@ func AggregateReportsWithParserType(jobID string, reports []Report, inputSize in
 			SecretsRedacted:        sumRedactions(redactions),
 			RawLogTTL:              "15m",
 		},
-		Timeline:       timeline,
-		ImmediateFixes: immediateFixes(findings),
+		Timeline:        timeline,
+		AnalysisSignals: signals,
+		ImmediateFixes:  immediateFixes(findings),
 	}
 	normalizeReportCollections(&report)
 	report.AggregateEvent = aggregateEvent(report, parserType, inputSize)

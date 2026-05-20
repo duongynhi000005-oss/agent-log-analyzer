@@ -27,6 +27,10 @@ type parsedLine struct {
 }
 
 func Analyze(jobID string, input []byte) (Report, error) {
+	return AnalyzeForSource(jobID, "unknown", input)
+}
+
+func AnalyzeForSource(jobID string, source string, input []byte) (Report, error) {
 	if len(bytes.TrimSpace(input)) == 0 {
 		return Report{}, errors.New("empty upload")
 	}
@@ -37,10 +41,14 @@ func Analyze(jobID string, input []byte) (Report, error) {
 		return Report{}, errors.New("no parseable content")
 	}
 
+	events := normalizeEvents(source, scrubbed)
+	signals := signalsFromEvents(events, 1)
 	metrics, timeline := computeMetrics(lines)
+	applySignalsToMetrics(&metrics, signals)
 	ecosystem := DetectEcosystem(scrubbed, lines)
 	ecosystem.ToolingUtilization = computeToolingUtilization(scrubbed, lines, metrics)
 	findings := buildFindings(metrics, lines, ecosystem)
+	findings = appendSignalFindings(findings, signals)
 	score := score(metrics, findings)
 	waste := wasteRange(score, metrics)
 
@@ -59,13 +67,27 @@ func Analyze(jobID string, input []byte) (Report, error) {
 			SecretsRedacted:        sumRedactions(redactions),
 			RawLogTTL:              "15m",
 		},
-		Timeline:       timeline,
-		ImmediateFixes: immediateFixes(findings),
+		Timeline:        timeline,
+		AnalysisSignals: signals,
+		ImmediateFixes:  immediateFixes(findings),
 	}
 	normalizeReportCollections(&report)
 	report.AggregateEvent = aggregateEvent(report, parserType, len(input))
 	AttachRecommendation(&report)
 	return report, nil
+}
+
+func applySignalsToMetrics(metrics *Metrics, signals AnalysisSignals) {
+	if signals.InputTokens+signals.OutputTokens > 0 {
+		metrics.EstimatedTokens = max(metrics.EstimatedTokens, signals.InputTokens+signals.OutputTokens)
+	}
+	if signals.ToolOutputBytes > 0 {
+		metrics.ToolOutputTokens = max(metrics.ToolOutputTokens, max(1, signals.ToolOutputBytes/4))
+	}
+	if signals.ArgsHashedRetryLoops > metrics.RetryDepthMax {
+		metrics.RetryDepthMax = signals.ArgsHashedRetryLoops
+	}
+	metrics.ContextGrowthEvents += signals.CacheInvalidationEvents
 }
 
 func parseLines(input []byte) ([]parsedLine, string) {
@@ -504,6 +526,9 @@ func normalizeReportCollections(report *Report) {
 	if report.Redactions == nil {
 		report.Redactions = map[string]int{}
 	}
+	if report.AnalysisSignals.SampleWarnings == nil {
+		report.AnalysisSignals.SampleWarnings = []string{}
+	}
 	for index := range report.SourceReports {
 		if report.SourceReports[index].Findings == nil {
 			report.SourceReports[index].Findings = []Finding{}
@@ -513,6 +538,9 @@ func normalizeReportCollections(report *Report) {
 		}
 		if report.SourceReports[index].ImmediateFixes == nil {
 			report.SourceReports[index].ImmediateFixes = []string{}
+		}
+		if report.SourceReports[index].AnalysisSignals.SampleWarnings == nil {
+			report.SourceReports[index].AnalysisSignals.SampleWarnings = []string{}
 		}
 	}
 	normalizeEcosystemCollections(&report.Ecosystem)

@@ -138,6 +138,26 @@
       "retries": 3
     }
   ],
+  "analysis_signals": {
+    "normalized_event_count": 11,
+    "tool_call_count": 0,
+    "tool_result_count": 0,
+    "args_hashed_retry_loops": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_miss_ratio_pct": 0,
+    "cache_invalidation_events": 0,
+    "tool_output_bytes": 0,
+    "patch_lines_added": 0,
+    "patch_lines_removed": 0,
+    "sample_confidence": "low",
+    "sample_warnings": [
+      "fewer_than_3_sessions",
+      "thin_event_sample"
+    ]
+  },
   "immediate_fixes": [
     "Prefer targeted searches and summarize file state before rereading the same files.",
     "Cap command output and use narrower queries before pasting long terminal output into context.",

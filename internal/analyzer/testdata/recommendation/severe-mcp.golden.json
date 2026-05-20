@@ -31,7 +31,8 @@
     "mcp_skill_bloat",
     "no_usage_visibility",
     "repeated_file_reads",
-    "retry_loop"
+    "retry_loop",
+    "tool_output_bloat"
   ],
   "unknown_id_count": 0
 }

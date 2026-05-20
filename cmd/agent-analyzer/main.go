@@ -108,7 +108,7 @@ func analyzeSingle(path, out string, printNextSteps bool) error {
 		return err
 	}
 	progress.Update(1, "analyzing "+shortDisplay(path))
-	report, err := analyzeBytes("local", data)
+	report, err := analyzeBytesForSource("local", "unknown", data)
 	if err != nil {
 		progress.Fail()
 		return err
@@ -130,8 +130,8 @@ func analyzeSingle(path, out string, printNextSteps bool) error {
 	return nil
 }
 
-func analyzeBytes(jobID string, data []byte) (analyzer.Report, error) {
-	report, err := analyzer.Analyze(jobID, data)
+func analyzeBytesForSource(jobID string, sourceID string, data []byte) (analyzer.Report, error) {
+	report, err := analyzer.AnalyzeForSource(jobID, sourceID, data)
 	if err != nil {
 		return analyzer.Report{}, err
 	}
@@ -324,15 +324,16 @@ func buildSourceReports(results []sourceAnalysisResult) []analyzer.SourceReport 
 			}
 		}
 		sourceReports = append(sourceReports, analyzer.SourceReport{
-			SourceID:       group.sourceID,
-			SourceLabel:    group.sourceLabel,
-			LogCount:       len(group.reports),
-			Score:          report.Score,
-			EstimatedWaste: report.EstimatedWaste,
-			Metrics:        report.Metrics,
-			Findings:       report.Findings,
-			Timeline:       report.Timeline,
-			ImmediateFixes: report.ImmediateFixes,
+			SourceID:        group.sourceID,
+			SourceLabel:     group.sourceLabel,
+			LogCount:        len(group.reports),
+			Score:           report.Score,
+			EstimatedWaste:  report.EstimatedWaste,
+			Metrics:         report.Metrics,
+			Findings:        report.Findings,
+			Timeline:        report.Timeline,
+			AnalysisSignals: report.AnalysisSignals,
+			ImmediateFixes:  report.ImmediateFixes,
 		})
 	}
 	return sourceReports
@@ -356,7 +357,7 @@ func analyzeDiscovered(candidates []logCandidate, out string, paid bool, printNe
 		}
 		step++
 		progress.Update(step, fmt.Sprintf("analyzing %s %s", candidate.SourceLabel, candidate.shortDisplay()))
-		report, err := analyzer.Analyze(fmt.Sprintf("local-%s-%03d", candidate.SourceID, index+1), data)
+		report, err := analyzeBytesForSource(fmt.Sprintf("local-%s-%03d", candidate.SourceID, index+1), candidate.SourceID, data)
 		if err != nil {
 			progress.Fail()
 			return fmt.Errorf("analyze %s log %d: %w", candidate.SourceLabel, index+1, err)
@@ -815,6 +816,7 @@ func recentOpenCodeSessions(limit int, maxBytes int64, minBytes int64) ([]logCan
 func openCodeSessionStats(path string) (int64, time.Time, error) {
 	var total int64
 	var latest time.Time
+	var messageIDs []string
 	err := filepath.WalkDir(path, func(filePath string, entry os.DirEntry, err error) error {
 		if err != nil {
 			return nil
@@ -830,8 +832,30 @@ func openCodeSessionStats(path string) (int64, time.Time, error) {
 		if info.ModTime().After(latest) {
 			latest = info.ModTime()
 		}
+		data, err := os.ReadFile(filePath)
+		if err == nil {
+			if messageID := openCodeMessageID(bytes.TrimSpace(data)); messageID != "" {
+				messageIDs = append(messageIDs, messageID)
+			}
+		}
 		return nil
 	})
+	if err != nil {
+		return total, latest, err
+	}
+	partRoot := openCodePartRootForMessageSession(path)
+	for _, messageID := range messageIDs {
+		partFiles, err := openCodePartFiles(partRoot, messageID)
+		if err != nil {
+			return total, latest, err
+		}
+		for _, part := range partFiles {
+			total += part.size
+			if part.modTime.After(latest) {
+				latest = part.modTime
+			}
+		}
+	}
 	return total, latest, err
 }
 
@@ -872,8 +896,92 @@ func readOpenCodeSessionMessages(path string) ([]byte, error) {
 		}
 		output.Write(trimmed)
 		output.WriteByte('\n')
+		messageID := openCodeMessageID(trimmed)
+		if messageID == "" {
+			continue
+		}
+		parts, err := readOpenCodeMessageParts(openCodePartRootForMessageSession(path), messageID)
+		if err != nil {
+			return nil, err
+		}
+		for _, part := range parts {
+			output.Write(part)
+			output.WriteByte('\n')
+		}
 	}
 	return output.Bytes(), nil
+}
+
+func openCodePartRootForMessageSession(messageSessionPath string) string {
+	storageRoot := filepath.Dir(filepath.Dir(messageSessionPath))
+	partRoot := filepath.Join(storageRoot, "part")
+	if _, err := os.Stat(partRoot); err != nil {
+		return ""
+	}
+	return partRoot
+}
+
+func openCodeMessageID(data []byte) string {
+	var decoded map[string]any
+	if json.Unmarshal(data, &decoded) != nil {
+		return ""
+	}
+	id, _ := decoded["id"].(string)
+	return strings.TrimSpace(id)
+}
+
+func readOpenCodeMessageParts(partRoot string, messageID string) ([][]byte, error) {
+	files, err := openCodePartFiles(partRoot, messageID)
+	if err != nil {
+		return nil, err
+	}
+	parts := make([][]byte, 0, len(files))
+	for _, file := range files {
+		data, err := os.ReadFile(file.path)
+		if err != nil {
+			return nil, err
+		}
+		trimmed := bytes.TrimSpace(data)
+		if len(trimmed) > 0 {
+			parts = append(parts, trimmed)
+		}
+	}
+	return parts, nil
+}
+
+func openCodePartFiles(partRoot string, messageID string) ([]logMatch, error) {
+	if partRoot == "" || messageID == "" {
+		return nil, nil
+	}
+	root := filepath.Join(partRoot, messageID)
+	var files []logMatch
+	err := filepath.WalkDir(root, func(filePath string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if entry.IsDir() || strings.ToLower(filepath.Ext(filePath)) != ".json" {
+			return nil
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return nil
+		}
+		files = append(files, logMatch{path: filePath, modTime: info.ModTime(), size: info.Size()})
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	sort.Slice(files, func(i, j int) bool {
+		if files[i].modTime.Equal(files[j].modTime) {
+			return files[i].path < files[j].path
+		}
+		return files[i].modTime.Before(files[j].modTime)
+	})
+	return files, nil
 }
 
 func sourceCount(candidates []logCandidate) int {
