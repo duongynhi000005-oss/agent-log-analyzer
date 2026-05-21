@@ -106,6 +106,7 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
     {{if ne .Job.Status "completed"}}<meta http-equiv="refresh" content="2" />{{end}}
     <title>Agent Analyzer Report</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/vendor/tippy/tippy.css" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -251,6 +252,9 @@ Redactions:
         {{end}}
       </section>
     </main>
+    <script src="/vendor/tippy/popper.min.js"></script>
+    <script src="/vendor/tippy/tippy-bundle.umd.min.js"></script>
+    <script src="/tooltips.js"></script>
   </body>
 </html>
 {{define "recommendation"}}
@@ -366,7 +370,7 @@ func sourceLogLabel(count int) string {
 
 func helpTip(text string) template.HTML {
 	return template.HTML(fmt.Sprintf(
-		`<span class="help-tip" tabindex="0" role="note" aria-label="%s">?</span>`,
+		`<button type="button" class="help-tip" data-tippy-content="%s" aria-label="More information">?</button>`,
 		htmlstd.EscapeString(text),
 	))
 }

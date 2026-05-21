@@ -291,14 +291,15 @@ function renderTokenVolume(report) {
   tokenVolume.appendChild(buildHelpTip(
     "Accuracy depends on the source log. When native usage fields exist, we use them. Otherwise we estimate roughly one token per four characters. Tool-output volume is derived from tool-result payload size and similar estimates. This is directional, not invoice-grade accounting.",
   ));
+  window.AgentAnalyzerTooltips?.init(tokenVolume);
 }
 
 function buildHelpTip(text) {
-  const tip = document.createElement("span");
+  const tip = document.createElement("button");
+  tip.type = "button";
   tip.className = "help-tip";
-  tip.tabIndex = 0;
-  tip.setAttribute("role", "note");
-  tip.setAttribute("aria-label", text);
+  tip.setAttribute("data-tippy-content", text);
+  tip.setAttribute("aria-label", "More information");
   tip.textContent = "?";
   return tip;
 }
