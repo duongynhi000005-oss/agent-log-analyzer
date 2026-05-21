@@ -88,6 +88,7 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
 	"bucketValue":           bucketValue,
 	"findingEvidence":       findingEvidence,
 	"findingsBubbleChart":   findingsBubbleChartHTML,
+	"helpTip":               helpTip,
 	"join":                  joinStrings,
 	"mapLines":              mapLines,
 	"recommendationLabel":   recommendationLabel,
@@ -114,27 +115,27 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
         {{if eq .Job.Status "completed"}}
         <div class="score">
           <span id="score">{{.Report.Score}}</span>
-          <small>efficiency score</small>
+          <small>efficiency score {{helpTip "Heuristic score from deterministic findings: repeated reads, retry depth, context-growth events, tool-output share, and normalized signal findings. It is a profiler score, not a model-quality grade."}}</small>
         </div>
         <div>
-          <h2>Estimated Waste</h2>
+          <h2>Estimated Waste {{helpTip "Avoidable spend is a heuristic range derived from the efficiency score and detected waste patterns. It is intended to rank severity and prompt investigation, not to reproduce provider billing."}}</h2>
           <p id="waste">{{.Report.EstimatedWaste.Low}}-{{.Report.EstimatedWaste.High}}% avoidable token spend</p>
-          <p class="command-note">Observed tokens: {{.Report.Metrics.EstimatedTokens}} total, {{.Report.Metrics.ToolOutputTokens}} from tool output.</p>
+          <p class="command-note">Analyzed token volume: {{.Report.Metrics.EstimatedTokens}} estimated input/output tokens; {{.Report.Metrics.ToolOutputTokens}} estimated from tool output. {{helpTip "Accuracy depends on the source log. When native usage fields exist, we use them. Otherwise we estimate roughly one token per four characters. Tool-output volume is derived from tool-result payload size and similar estimates. This is directional, not invoice-grade accounting."}}</p>
         </div>
         <div class="problem-section">
-          <h2>Top Problems</h2>
+          <h2>Top Problems {{helpTip "Bubble size is representative impact, not a precise measurement. Tool-output and cache issues use token fields when available; rereads, retries, and context spikes use bounded count-scaled estimates so the graph shows relative severity without exposing raw content."}}</h2>
           {{findingsBubbleChart .Report}}
         </div>
         {{if not .Report.SourceReports}}
         <div>
-          <h2>Session Timeline</h2>
-          <p id="timeline-caption" class="timeline-caption">Estimated context size by turn. Highlighted area shows avoidable spend.</p>
+          <h2>Session Timeline {{helpTip "Timeline points are sampled from parsed log rows, usually every ten rows plus the final row. Token height is estimated context/token volume at that point, not a guaranteed exact provider context window."}}</h2>
+          <p id="timeline-caption" class="timeline-caption">Estimated context/token volume by parsed turn. Highlighted area shows potential savings.</p>
           {{timelineChart .Report.Timeline .Report.EstimatedWaste}}
         </div>
         {{end}}
         {{if .Report.SourceReports}}
         <section class="source-reports">
-          <h2>Agent Logs Analyzed</h2>
+          <h2>Agent Logs Analyzed {{helpTip "Each section is built from logs parsed locally for that supported agent source. The top-level report is an aggregate; source timelines are the only charts that represent parsed turns."}}</h2>
           {{range .Report.SourceReports}}
           <article class="source-report">
             <header class="source-report-header">
@@ -149,9 +150,9 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
             </header>
             <div class="source-report-grid">
               <div>
-                <h4>Waste</h4>
+                <h4>Waste {{helpTip "Source-level waste is computed with the same deterministic heuristic as the full report, using only this source's parsed logs."}}</h4>
                 <p>{{.EstimatedWaste.Low}}-{{.EstimatedWaste.High}}% avoidable token spend</p>
-                <p class="command-note">{{.Metrics.EstimatedTokens}} estimated tokens; {{.Metrics.ToolOutputTokens}} tool-output tokens; {{.Metrics.Rereads}} rereads; {{.Metrics.FailedCommands}} retries.</p>
+                <p class="command-note">{{.Metrics.EstimatedTokens}} estimated input/output tokens; {{.Metrics.ToolOutputTokens}} estimated tool-output tokens; {{.Metrics.Rereads}} rereads; {{.Metrics.FailedCommands}} retries. {{helpTip "Token counts use native usage fields when available and fall back to rough text-size estimates. Rereads and retries are deterministic pattern detections over sanitized local parse output."}}</p>
               </div>
               <div>
                 <h4>Top Problems</h4>
@@ -165,7 +166,7 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
               </div>
             </div>
             {{if .Timeline}}
-            <p class="timeline-caption">Estimated context size by turn for this source. Highlighted area shows avoidable spend.</p>
+            <p class="timeline-caption">Estimated context/token volume by parsed turn for this source. Highlighted area shows potential savings. {{helpTip "This source timeline is based on parsed log-row order, sampled for readability. It should be used to spot growth shape and spikes, not exact provider billing."}}</p>
             {{timelineChart .Timeline .EstimatedWaste}}
             {{else}}
             <p class="timeline-caption">Per-turn timeline unavailable for this aggregated source. Totals above cover {{sourceLogLabel .LogCount}}.</p>
@@ -175,23 +176,23 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
         </section>
         {{end}}
         <div>
-          <h2>Suggested Immediate Fixes</h2>
+          <h2>Suggested Immediate Fixes {{helpTip "Fixes are generated from deterministic finding IDs and bounded evidence, not from raw prompts or an LLM reading your transcript."}}</h2>
           <ul id="fixes">
             {{range .Report.ImmediateFixes}}<li>{{.}}</li>{{else}}<li>No immediate fixes were generated.</li>{{end}}
           </ul>
         </div>
         {{if .Report.Recommendation}}
         <section id="recommendation-section" class="intel-section">
-          <h2>Next-best recommendation</h2>
+          <h2>Next-best recommendation {{helpTip "Recommendation ranking comes from allowlisted tool metadata and deterministic signals such as tool-output bloat, retrieval friction, usage visibility, and MCP/skill utilization. Unknown private names are not echoed."}}</h2>
           {{with .Report.Recommendation.Primary}}{{template "recommendation" .}}{{end}}
           {{with .Report.Recommendation.Secondary}}{{template "recommendation" .}}{{end}}
           {{if and (not .Report.Recommendation.Primary) (not .Report.Recommendation.Secondary)}}
-          <p id="recommendation-empty">No action needed — your tooling is already in shape.</p>
+          <p id="recommendation-empty">No high-priority recommendation detected from current signals.</p>
           {{end}}
         </section>
         {{end}}
         <section id="workflow-fingerprints" class="intel-section">
-          <h2>Workflow Fingerprints</h2>
+          <h2>Workflow Fingerprints {{helpTip "Fingerprints are bounded detections for known public tools. Evidence comes from verified signatures such as command names, config markers, MCP namespaces, package manifests, and optional CLI presence/version buckets. Private names are counted, not shown."}}</h2>
           <ol id="workflow-fingerprints-list">
             {{range .Report.Ecosystem.WorkflowFingerprints}}
             <li>{{.ID}} — {{.Confidence}} confidence; sources: {{join .Sources}}; evidence: {{.EvidenceCount}}{{if .Active}}; active{{end}}{{if .Installed}}; installed{{end}}{{if .VersionBucket}}; version: {{.VersionBucket}}{{end}}</li>
@@ -201,14 +202,14 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
           </ol>
         </section>
         <section id="tooling-utilization" class="intel-section">
-          <h2>MCP &amp; Skill Utilization</h2>
+          <h2>MCP &amp; Skill Utilization {{helpTip "Utilization compares bounded exposed MCP/skill context against observed calls/executions. The warning band is a heuristic for context bloat risk, not a claim that a specific private tool is bad."}}</h2>
           <div id="tooling-utilization-rows">
             <p><strong>MCP:</strong> {{.Report.Ecosystem.ToolingUtilization.MCP.WarningBand}} band; {{.Report.Ecosystem.ToolingUtilization.MCP.UtilizationRatioPct}}% utilization; exposed servers {{.Report.Ecosystem.ToolingUtilization.MCP.ServerCountBucket}}; context {{.Report.Ecosystem.ToolingUtilization.MCP.ContextTokenBucket}}; calls {{.Report.Ecosystem.ToolingUtilization.MCP.CallCount}}; known called: {{join .Report.Ecosystem.ToolingUtilization.MCP.UniqueKnownCalledIDs}}; unknown called count: {{.Report.Ecosystem.ToolingUtilization.MCP.UniqueUnknownCalledCount}}</p>
             <p><strong>Skills:</strong> {{.Report.Ecosystem.ToolingUtilization.Skill.WarningBand}} band; {{.Report.Ecosystem.ToolingUtilization.Skill.UtilizationRatioPct}}% utilization; exposed {{.Report.Ecosystem.ToolingUtilization.Skill.ExposedCountBucket}}; context {{.Report.Ecosystem.ToolingUtilization.Skill.ContextTokenBucket}}; executions {{.Report.Ecosystem.ToolingUtilization.Skill.ExecutedCount}}; known executed: {{join .Report.Ecosystem.ToolingUtilization.Skill.KnownExecutedIDs}}; unknown executed count: {{.Report.Ecosystem.ToolingUtilization.Skill.UnknownExecutedCount}}</p>
           </div>
         </section>
         <div>
-          <h2>Ecosystem</h2>
+          <h2>Ecosystem {{helpTip "Ecosystem fields are bounded categories and allowlisted public names. Unknown/private MCPs, skills, plugins, and tools are counted without exposing their raw names."}}</h2>
           <pre id="ecosystem">Client: {{.Report.Ecosystem.Client}}
 Coding agents: {{join .Report.Ecosystem.CodingAgents}}
 OS: {{.Report.Ecosystem.OperatingSystem}}
@@ -224,7 +225,7 @@ Package managers: {{join .Report.Ecosystem.PackageManagers}}
 Version control: {{.Report.Ecosystem.VersionControl}}</pre>
         </div>
         <div>
-          <h2>Security Receipt</h2>
+          <h2>Security Receipt {{helpTip "The public flow analyzes locally and uploads sanitized report JSON. This receipt records the report's own privacy flags and redaction counts; it is not a third-party audit."}}</h2>
           <pre id="receipt">Raw transcript sent to LLM: {{boolText .Report.SecurityReceipt.RawTranscriptSentToLLM}}
 Outbound during analysis: {{boolText .Report.SecurityReceipt.OutboundDuringAnalysis}}
 Secrets redacted: {{.Report.SecurityReceipt.SecretsRedacted}}
@@ -361,6 +362,13 @@ func sourceLogLabel(count int) string {
 		return "1 log"
 	}
 	return fmt.Sprintf("%d logs", count)
+}
+
+func helpTip(text string) template.HTML {
+	return template.HTML(fmt.Sprintf(
+		`<span class="help-tip" tabindex="0" role="note" aria-label="%s">?</span>`,
+		htmlstd.EscapeString(text),
+	))
 }
 
 func findingsBubbleChartHTML(report analyzer.Report) template.HTML {
@@ -534,9 +542,9 @@ func timelineChartHTML(points []analyzer.TimelinePoint, waste analyzer.WasteRang
 	firstTurn := visible[0].Turn
 	lastTurn := visible[len(visible)-1].Turn
 	var b strings.Builder
-	fmt.Fprintf(&b, `<div class="timeline-legend" aria-hidden="true"><span class="timeline-legend-item"><span class="timeline-legend-swatch timeline-legend-observed"></span>observed context</span><span class="timeline-legend-item"><span class="timeline-legend-swatch timeline-legend-savings"></span>%d-%d%% optimized potential</span></div>`, wasteLow, wasteHigh)
+	fmt.Fprintf(&b, `<div class="timeline-legend" aria-hidden="true"><span class="timeline-legend-item"><span class="timeline-legend-swatch timeline-legend-observed"></span>estimated volume</span><span class="timeline-legend-item"><span class="timeline-legend-swatch timeline-legend-savings"></span>%d-%d%% potential savings</span></div>`, wasteLow, wasteHigh)
 	fmt.Fprintf(&b, `<div class="timeline-frame"><div class="timeline-y-axis" aria-hidden="true"><span>%s tokens</span><span>0</span></div>`, compactNumber(maxTokens))
-	fmt.Fprintf(&b, `<div class="timeline" role="img" aria-label="%s">`, htmlstd.EscapeString(fmt.Sprintf("Session timeline from turn %d to turn %d; maximum %d estimated tokens; estimated avoidable spend %d-%d percent.", firstTurn, lastTurn, maxTokens, wasteLow, wasteHigh)))
+	fmt.Fprintf(&b, `<div class="timeline" role="img" aria-label="%s">`, htmlstd.EscapeString(fmt.Sprintf("Session timeline from turn %d to turn %d; maximum %d estimated token volume; potential savings range %d-%d percent.", firstTurn, lastTurn, maxTokens, wasteLow, wasteHigh)))
 	for _, point := range visible {
 		height := point.EstimatedTokens * 100 / maxTokens
 		if height < 4 {
@@ -544,7 +552,7 @@ func timelineChartHTML(points []analyzer.TimelinePoint, waste analyzer.WasteRang
 		}
 		savedLow := point.EstimatedTokens * wasteLow / 100
 		savedHigh := point.EstimatedTokens * wasteHigh / 100
-		tooltip := fmt.Sprintf("turn %d | %s estimated tokens | %s-%s potentially avoidable tokens | %s tool-output tokens | %s rereads | %s retries",
+		tooltip := fmt.Sprintf("turn %d | %s estimated token volume | %s-%s estimated potential savings | %s estimated tool-output tokens | %s rereads | %s retries",
 			point.Turn,
 			groupNumber(point.EstimatedTokens),
 			groupNumber(savedLow),

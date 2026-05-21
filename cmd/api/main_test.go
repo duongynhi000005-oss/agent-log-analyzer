@@ -242,7 +242,7 @@ func TestReportPageServerRendersCompletedReport(t *testing.T) {
 		"Claude Code",
 		"Codex",
 		"timeline-bar",
-		"optimized potential",
+		"potential savings",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("server-rendered report missing %q:\n%s", want, body)

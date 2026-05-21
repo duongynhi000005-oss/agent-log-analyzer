@@ -20,9 +20,9 @@
         </ul>
         <ul class="trust">
           <li>No account required</li>
-          <li>Raw logs never leave your machine</li>
-          <li>Never used for training</li>
-          <li>Secrets redacted before upload</li>
+          <li>Raw logs stay local in the public flow <span class="help-tip" tabindex="0" role="note" aria-label="The NPX command analyzes Claude Code, Codex, and OpenCode logs on your machine first. The upload step sends the generated sanitized report JSON, not raw transcript files.">?</span></li>
+          <li>Reports are not used for training <span class="help-tip" tabindex="0" role="note" aria-label="The service stores short-lived reports for rendering and bounded aggregate analytics. It does not feed uploaded reports into model training.">?</span></li>
+          <li>Secrets redacted before upload <span class="help-tip" tabindex="0" role="note" aria-label="The CLI runs deterministic redaction before writing the report JSON. Redaction is best-effort and category-counted; users should still review the JSON before upload.">?</span></li>
         </ul>
         <p class="disclaimer">Agent Analyzer is an independent third-party tool and is not affiliated with Anthropic. The public flow runs analysis on your machine and uploads only the sanitized JSON report you review.</p>
         <p class="trust-links"><a href="/security/">Security</a> <a href="/privacy/">Privacy</a></p>
@@ -37,7 +37,7 @@
             <button id="copy-prompt" type="button">Copy NPX Command</button>
           </div>
           <pre id="claude-prompt">npx --yes agent-analyzer@latest run</pre>
-          <p class="command-note">Runs on your machine first, asks before upload, and sends only the sanitized report JSON.</p>
+          <p class="command-note">Runs on your machine first, asks before upload, and sends only the sanitized report JSON. <span class="help-tip" tabindex="0" role="note" aria-label="This command uses the published npm package. It discovers supported local agent logs, parses and redacts locally, writes a report file, asks for confirmation, then uploads only that report JSON.">?</span></p>
         </section>
       </section>
 
@@ -45,19 +45,20 @@
         <p class="expiry" id="report-status">This report is visible for 15 minutes.</p>
         <div class="score">
           <span id="score">--</span>
-          <small>efficiency score</small>
+          <small>efficiency score <span class="help-tip" tabindex="0" role="note" aria-label="Heuristic score from deterministic findings: repeated reads, retry depth, context-growth events, tool-output share, and normalized signal findings. It is a profiler score, not a model-quality grade.">?</span></small>
         </div>
         <div>
-          <h2>Estimated Waste</h2>
+          <h2>Estimated Waste <span class="help-tip" tabindex="0" role="note" aria-label="Avoidable spend is a heuristic range derived from the efficiency score and detected waste patterns. It is intended to rank severity and prompt investigation, not to reproduce provider billing.">?</span></h2>
           <p id="waste"></p>
+          <p id="token-volume" class="command-note"></p>
         </div>
         <div class="problem-section">
-          <h2>Top Problems</h2>
+          <h2>Top Problems <span class="help-tip" tabindex="0" role="note" aria-label="Bubble size is representative impact, not a precise measurement. Tool-output and cache issues use token fields when available; rereads, retries, and context spikes use bounded count-scaled estimates.">?</span></h2>
           <div id="findings" class="problem-bubbles" role="list" aria-label="Top problems sized by representative token impact"></div>
         </div>
         <div id="timeline-section">
-          <h2>Session Timeline</h2>
-          <p id="timeline-caption" class="timeline-caption">Estimated context size by turn. Highlighted area shows avoidable spend.</p>
+          <h2>Session Timeline <span class="help-tip" tabindex="0" role="note" aria-label="Timeline points are sampled from parsed log rows, usually every ten rows plus the final row. Token height is estimated context/token volume at that point, not exact provider billing.">?</span></h2>
+          <p id="timeline-caption" class="timeline-caption">Estimated context/token volume by parsed turn. Highlighted area shows potential savings.</p>
           <div id="timeline-legend" class="timeline-legend" aria-hidden="true"></div>
           <div class="timeline-frame">
             <div class="timeline-y-axis" aria-hidden="true">
@@ -69,32 +70,32 @@
           <div id="timeline-x-axis" class="timeline-x-axis" aria-hidden="true"></div>
         </div>
         <div>
-          <h2>Suggested Immediate Fixes</h2>
+          <h2>Suggested Immediate Fixes <span class="help-tip" tabindex="0" role="note" aria-label="Fixes are generated from deterministic finding IDs and bounded evidence, not from raw prompts or an LLM reading your transcript.">?</span></h2>
           <ul id="fixes"></ul>
         </div>
         <section id="recommendation-section" class="intel-section" hidden>
-          <h2>Next-best recommendation</h2>
+          <h2>Next-best recommendation <span class="help-tip" tabindex="0" role="note" aria-label="Recommendation ranking comes from allowlisted tool metadata and deterministic signals such as tool-output bloat, retrieval friction, usage visibility, and MCP/skill utilization. Unknown private names are not echoed.">?</span></h2>
           <div id="recommendation-primary"></div>
           <div id="recommendation-secondary"></div>
-          <p id="recommendation-empty" hidden>No action needed — your tooling is already in shape.</p>
+          <p id="recommendation-empty" hidden>No high-priority recommendation detected from current signals.</p>
         </section>
 
         <section id="workflow-fingerprints" class="intel-section" hidden>
-          <h2>Workflow Fingerprints</h2>
+          <h2>Workflow Fingerprints <span class="help-tip" tabindex="0" role="note" aria-label="Fingerprints are bounded detections for known public tools. Evidence comes from verified signatures such as command names, config markers, MCP namespaces, package manifests, and optional CLI presence/version buckets. Private names are counted, not shown.">?</span></h2>
           <ol id="workflow-fingerprints-list"></ol>
         </section>
 
         <section id="tooling-utilization" class="intel-section" hidden>
-          <h2>MCP &amp; Skill Utilization</h2>
+          <h2>MCP &amp; Skill Utilization <span class="help-tip" tabindex="0" role="note" aria-label="Utilization compares bounded exposed MCP/skill context against observed calls/executions. The warning band is a heuristic for context bloat risk, not a claim that a specific private tool is bad.">?</span></h2>
           <div id="tooling-utilization-rows"></div>
         </section>
 
         <div>
-          <h2>Ecosystem</h2>
+          <h2>Ecosystem <span class="help-tip" tabindex="0" role="note" aria-label="Ecosystem fields are bounded categories and allowlisted public names. Unknown/private MCPs, skills, plugins, and tools are counted without exposing their raw names.">?</span></h2>
           <pre id="ecosystem"></pre>
         </div>
         <div>
-          <h2>Security Receipt</h2>
+          <h2>Security Receipt <span class="help-tip" tabindex="0" role="note" aria-label="The public flow analyzes locally and uploads sanitized report JSON. This receipt records the report's own privacy flags and redaction counts; it is not a third-party audit.">?</span></h2>
           <pre id="receipt"></pre>
         </div>
         <div class="upsell">

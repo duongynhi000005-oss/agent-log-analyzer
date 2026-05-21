@@ -149,6 +149,7 @@ function renderReport(report) {
   document.querySelector("#score").textContent = report.score;
   document.querySelector("#waste").textContent =
     `${report.estimated_waste_pct.low}-${report.estimated_waste_pct.high}% avoidable token spend`;
+  renderTokenVolume(report);
 
   const findings = document.querySelector("#findings");
   findings.innerHTML = "";
@@ -278,6 +279,30 @@ function clampProblemTokens(tokens, total) {
   return Math.min(Math.max(1, numberValue(tokens)), Math.max(1, numberValue(total)));
 }
 
+function renderTokenVolume(report) {
+  const tokenVolume = document.querySelector("#token-volume");
+  if (!tokenVolume) return;
+  const metrics = report?.metrics || {};
+  tokenVolume.replaceChildren();
+  tokenVolume.append(
+    `Analyzed token volume: ${formatNumber(numberValue(metrics.estimated_tokens))} estimated input/output tokens; ` +
+      `${formatNumber(numberValue(metrics.tool_output_tokens))} estimated from tool output. `,
+  );
+  tokenVolume.appendChild(buildHelpTip(
+    "Accuracy depends on the source log. When native usage fields exist, we use them. Otherwise we estimate roughly one token per four characters. Tool-output volume is derived from tool-result payload size and similar estimates. This is directional, not invoice-grade accounting.",
+  ));
+}
+
+function buildHelpTip(text) {
+  const tip = document.createElement("span");
+  tip.className = "help-tip";
+  tip.tabIndex = 0;
+  tip.setAttribute("role", "note");
+  tip.setAttribute("aria-label", text);
+  tip.textContent = "?";
+  return tip;
+}
+
 function bubbleDiameter(tokens, maxTokens) {
   const ratio = Math.min(1, Math.max(0, numberValue(tokens) / Math.max(1, numberValue(maxTokens))));
   return 170 + Math.round(ratio * 98);
@@ -325,7 +350,7 @@ function renderTimeline(points, estimatedWaste) {
   const lastTurn = numberValue(visiblePoints[visiblePoints.length - 1]?.turn);
   chart.setAttribute(
     "aria-label",
-    `Session timeline showing estimated context growth from turn ${firstTurn} to turn ${lastTurn}; maximum ${formatNumber(maxTokens)} estimated tokens; estimated avoidable spend ${wasteRange.low}-${wasteRange.high} percent.`,
+    `Session timeline showing estimated context/token volume from turn ${firstTurn} to turn ${lastTurn}; maximum ${formatNumber(maxTokens)} estimated tokens; potential savings range ${wasteRange.low}-${wasteRange.high} percent.`,
   );
   if (yMax) yMax.textContent = `${formatCompactNumber(maxTokens)} tokens`;
   renderTimelineLegend(legend, wasteRange);
@@ -336,9 +361,9 @@ function renderTimeline(points, estimatedWaste) {
     const savedTokensHigh = Math.round(estimatedTokens * wasteRange.high / 100);
     const tooltip = [
       `turn ${numberValue(point.turn)}`,
-      `${formatNumber(estimatedTokens)} estimated tokens`,
-      `${formatNumber(savedTokensLow)}-${formatNumber(savedTokensHigh)} potentially avoidable tokens`,
-      `${formatNumber(numberValue(point.tool_tokens))} tool-output tokens`,
+      `${formatNumber(estimatedTokens)} estimated token volume`,
+      `${formatNumber(savedTokensLow)}-${formatNumber(savedTokensHigh)} estimated potential savings`,
+      `${formatNumber(numberValue(point.tool_tokens))} estimated tool-output tokens`,
       `${formatNumber(numberValue(point.rereads))} rereads`,
       `${formatNumber(numberValue(point.retries))} retries`,
     ].join(" | ");
@@ -380,7 +405,7 @@ function renderTimelineLegend(legend, wasteRange) {
   const observedSwatch = document.createElement("span");
   observedSwatch.className = "timeline-legend-swatch timeline-legend-observed";
   observed.appendChild(observedSwatch);
-  observed.append("observed context");
+  observed.append("estimated volume");
   legend.appendChild(observed);
 
   const avoidable = document.createElement("span");
@@ -388,7 +413,7 @@ function renderTimelineLegend(legend, wasteRange) {
   const avoidableSwatch = document.createElement("span");
   avoidableSwatch.className = "timeline-legend-swatch timeline-legend-savings";
   avoidable.appendChild(avoidableSwatch);
-  avoidable.append(`${wasteRange.low}-${wasteRange.high}% optimized potential`);
+  avoidable.append(`${wasteRange.low}-${wasteRange.high}% potential savings`);
   legend.appendChild(avoidable);
 }
 
