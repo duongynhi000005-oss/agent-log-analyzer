@@ -176,7 +176,7 @@ resource "aws_vpc_endpoint" "dynamodb" {
 }
 
 resource "aws_vpc_endpoint" "interface" {
-  for_each = toset(["ecr.api", "ecr.dkr", "logs", "sqs"])
+  for_each = toset(["ecr.api", "ecr.dkr", "email", "logs", "sqs"])
 
   vpc_id              = aws_vpc.main.id
   service_name        = "com.amazonaws.${var.aws_region}.${each.key}"
@@ -368,8 +368,13 @@ resource "aws_iam_role_policy" "task" {
       },
       {
         Effect   = "Allow"
-        Action   = ["dynamodb:GetItem", "dynamodb:PutItem"]
+        Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Scan"]
         Resource = aws_dynamodb_table.jobs.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["ses:SendEmail"]
+        Resource = "*"
       }
     ]
   })
@@ -473,7 +478,9 @@ locals {
     { name = "CLAUDE_ANALYZER_UPLOAD_BUCKET", value = aws_s3_bucket.uploads.bucket },
     { name = "CLAUDE_ANALYZER_REPORT_BUCKET", value = aws_s3_bucket.reports.bucket },
     { name = "CLAUDE_ANALYZER_JOB_TABLE", value = aws_dynamodb_table.jobs.name },
-    { name = "CLAUDE_ANALYZER_JOB_QUEUE_URL", value = aws_sqs_queue.jobs.url }
+    { name = "CLAUDE_ANALYZER_JOB_QUEUE_URL", value = aws_sqs_queue.jobs.url },
+    { name = "CLAUDE_ANALYZER_EMAIL_PROVIDER", value = var.email_provider },
+    { name = "CLAUDE_ANALYZER_EMAIL_FROM", value = var.email_from }
   ]
 }
 

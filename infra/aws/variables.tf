@@ -40,6 +40,18 @@ variable "max_queue_depth" {
   default     = 1000
 }
 
+variable "email_provider" {
+  type        = string
+  description = "Transactional email provider for confirmation and full-scan delivery. Use ses in production or empty to log only."
+  default     = "ses"
+}
+
+variable "email_from" {
+  type        = string
+  description = "Verified sender address for transactional email."
+  default     = "noreply@spec-kitty.ai"
+}
+
 variable "certificate_arn" {
   type        = string
   description = "Optional ACM certificate ARN for HTTPS listener."
