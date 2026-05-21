@@ -173,6 +173,11 @@ function renderReport(report) {
     item.textContent = fix;
     fixes.appendChild(item);
   }
+  if ((report.immediate_fixes || []).length === 0) {
+    const item = document.createElement("li");
+    item.textContent = "No immediate deterministic fix was required, but the paid scan can still generate broader workflow and tooling guidance from more sessions.";
+    fixes.appendChild(item);
+  }
 
   const timelineSection = document.querySelector("#timeline-section");
   if ((report.source_reports || []).length > 0) {

@@ -534,6 +534,10 @@ pre {
   gap: 20px;
 }
 
+.report > * {
+  min-width: 0;
+}
+
 .expiry {
   grid-column: 1 / -1;
   margin: 0;
@@ -894,6 +898,112 @@ pre {
   text-align: right;
 }
 
+.plugin-pitch {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
+  gap: 18px;
+  align-items: stretch;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(126, 231, 135, 0.08), transparent 38%),
+    #0a0f14;
+}
+
+.plugin-pitch h2 {
+  margin-bottom: 10px;
+  font-size: clamp(22px, 3vw, 34px);
+  line-height: 1.05;
+}
+
+.plugin-pitch p {
+  max-width: 720px;
+  margin: 0 0 16px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.plugin-benefits,
+#fixes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plugin-benefits {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.plugin-benefits li,
+#fixes li {
+  position: relative;
+  padding-left: 20px;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.plugin-benefits li::before,
+#fixes li::before {
+  content: "";
+  position: absolute;
+  top: 0.62em;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--green);
+  box-shadow: 0 0 10px rgba(126, 231, 135, 0.55);
+}
+
+.plugin-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1px solid var(--green);
+  border-radius: 6px;
+  color: var(--green);
+  text-decoration: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.plugin-cta:hover,
+.plugin-cta:focus {
+  background: rgba(126, 231, 135, 0.1);
+}
+
+.plugin-fixes-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(121, 192, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(8, 11, 16, 0.72);
+}
+
+.plugin-fixes-card h3 {
+  margin: 0;
+  color: var(--text);
+}
+
+#fixes {
+  display: grid;
+  gap: 10px;
+}
+
+#fixes li {
+  color: var(--muted);
+}
+
 .source-reports {
   grid-column: 1 / -1;
   display: grid;
@@ -1013,6 +1123,10 @@ pre {
 
   .timeline-x-axis {
     margin-left: 58px;
+  }
+
+  .plugin-pitch {
+    grid-template-columns: 1fr;
   }
 
   .panel-heading {
