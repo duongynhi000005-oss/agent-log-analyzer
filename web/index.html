@@ -40,6 +40,69 @@
           <pre id="claude-prompt">npx --yes agent-analyzer@latest run</pre>
           <p class="command-note">Runs on your machine first, asks before upload, and sends only the sanitized report JSON. <button type="button" class="help-tip" data-tippy-content="This command uses the published npm package. It discovers supported local agent logs, parses and redacts locally, writes a report file, asks for confirmation, then uploads only that report JSON." aria-label="More information">?</button></p>
         </section>
+
+        <section class="trust-stack" aria-label="Install trust details">
+          <div class="trust-flow">
+            <h2>What this command does</h2>
+            <ol class="flow-steps">
+              <li><span>1</span>Finds supported local agent logs.</li>
+              <li><span>2</span>Parses metrics and redacts secrets locally.</li>
+              <li><span>3</span>Writes a reviewable report JSON.</li>
+              <li><span>4</span>Asks: "Are you ready to get your report?"</li>
+              <li><span>5</span>Uploads only the sanitized report JSON.</li>
+            </ol>
+          </div>
+
+          <div class="data-path">
+            <h2>Data path</h2>
+            <div class="path-rail" aria-label="Raw logs to local analyzer to sanitized report to short-lived hosted report">
+              <span>Claude / Codex / OpenCode logs</span>
+              <span>local analyzer</span>
+              <span>sanitized JSON</span>
+              <span>15-minute report</span>
+            </div>
+            <p>Raw transcripts are not uploaded in the public flow. The hosted page receives the generated report artifact, not your original session files.</p>
+          </div>
+
+          <div class="proof-links">
+            <h2>Verify before running</h2>
+            <a href="https://github.com/Priivacy-ai/agent-log-analyzer" rel="noopener noreferrer">Source on GitHub</a>
+            <a href="https://www.npmjs.com/package/agent-analyzer" rel="noopener noreferrer">npm package</a>
+            <a href="/security/">Security model</a>
+            <a href="/privacy/">Privacy terms</a>
+            <a href="https://github.com/Priivacy-ai/agent-log-analyzer/releases" rel="noopener noreferrer">Manual download</a>
+          </div>
+
+          <div class="read-only-note">
+            <h2>Read-only scan</h2>
+            <p>The free scan does not install hooks, change Claude settings, modify repos, or run remediation. It reads logs, writes a local report file, and waits for your upload approval. NPX does not install the analyzer globally.</p>
+            <pre>npm uninstall -g agent-analyzer</pre>
+          </div>
+        </section>
+
+        <section class="outcome-preview" aria-label="Report outcome preview">
+          <div>
+            <p class="eyebrow">outcome preview</p>
+            <h2>One command should end in a concrete profiler report.</h2>
+            <p>The report is designed to show the waste signal, the evidence behind it, and the next remediation step without asking an LLM to read your raw transcript.</p>
+          </div>
+          <div class="preview-frame" aria-hidden="true">
+            <div class="preview-terminal">
+              <span>$ npx --yes agent-analyzer@latest run</span>
+              <span>[====&gt;] reading Claude Code logs</span>
+              <span>[========&gt;] redacting secrets locally</span>
+              <span>Are you ready to get your report?</span>
+            </div>
+            <div class="preview-report">
+              <strong>27</strong>
+              <span>efficiency score</span>
+              <p>36-62% avoidable token spend</p>
+              <div class="preview-bubbles">
+                <i></i><i></i><i></i>
+              </div>
+            </div>
+          </div>
+        </section>
       </section>
 
       <section class="report" id="report" hidden>
