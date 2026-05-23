@@ -76,7 +76,7 @@ Free scan:
 - user reviews `agent-analyzer-report.json`
 - server receives sanitized report JSON only
 - tokenized report URL
-- free extended Markdown download and plugin artifact access use the private report token
+- free report-pack download and plugin artifact access use the private report token
 
 ## Scale Gates
 

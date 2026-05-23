@@ -36,8 +36,32 @@ fi
 CLIENT_REPORT_API=$(printf '%s' "$CLIENT_REPORT_URL" | sed 's#^http://127.0.0.1:8080/r/#/api/public-reports/#')
 CLIENT_REPORT_BODY=$(curl -fsS "http://127.0.0.1:8080$CLIENT_REPORT_API")
 echo "$CLIENT_REPORT_BODY" | grep -q '"raw_log_ttl":"not uploaded"'
-CLIENT_EXTENDED_API="${CLIENT_REPORT_API}/extended.md"
-curl -fsS "http://127.0.0.1:8080$CLIENT_EXTENDED_API" | grep -q 'Agent Analyzer Extended Report'
+CLIENT_PACK_API="${CLIENT_REPORT_API}/download.zip"
+curl -fsS "http://127.0.0.1:8080$CLIENT_PACK_API" -o /tmp/agent-analyzer-report-pack.zip
+python3 - <<'PY'
+import re
+import zipfile
+
+with zipfile.ZipFile("/tmp/agent-analyzer-report-pack.zip") as zf:
+    names = set(zf.namelist())
+    required = {
+        "agent-token-saving-field-guide.pdf",
+        "personalized-agent-analyzer-report.pdf",
+        "agent-analyzer-report.json",
+        "plugin-preview.md",
+        "partner-vouchers/spec-kitty-training-voucher.pdf",
+        "partner-vouchers/spec-kitty-training-voucher.txt",
+    }
+    missing = sorted(required - names)
+    if missing:
+        raise SystemExit(f"report pack missing entries: {missing}")
+    for name in ["agent-token-saving-field-guide.pdf", "personalized-agent-analyzer-report.pdf", "partner-vouchers/spec-kitty-training-voucher.pdf"]:
+        if not zf.read(name).startswith(b"%PDF"):
+            raise SystemExit(f"{name} is not a PDF")
+    voucher = zf.read("partner-vouchers/spec-kitty-training-voucher.txt").decode("utf-8")
+    if not re.search(r"Code: [A-Z0-9]{6}", voucher) or "20% off Spec Kitty trainings" not in voucher:
+        raise SystemExit("voucher is missing code or discount copy")
+PY
 CLIENT_ARTIFACT_API=$(echo "$CLIENT_REPORT_URL" | sed 's#^http://127.0.0.1:8080/r/#/api/public-artifacts/#')/plugin.zip
 curl -fsS "http://127.0.0.1:8080$CLIENT_ARTIFACT_API" -o /tmp/agent-analyzer-plugin.zip
 if [ "$(dd if=/tmp/agent-analyzer-plugin.zip bs=2 count=1 2>/dev/null)" != "PK" ]; then

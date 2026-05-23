@@ -1,6 +1,6 @@
 # Paid Claude Plugin Artifacts
 
-The launch product is one local scan, a free extended report, and an optional generated Claude Code plugin/remediation artifact. Stripe checkout is still the intended paid gate for the plugin, but the scan itself is no longer split into free and full phases.
+The launch product is one local scan, a free report pack, and an optional generated Claude Code plugin/remediation artifact. Stripe checkout is still the intended paid gate for the plugin.
 
 The plugin should optimize Claude Code's harness, not nag on shell commands. The primary value is turning the analysis into a vetted setup plan: lean CLAUDE.md hierarchy, scoped skills, official code-intelligence plugins, language-server binaries, and trusted MCP-backed integrations.
 
@@ -10,7 +10,7 @@ Public scan:
 
 - analyzes target-sized recent logs per supported source
 - shows deterministic problems, evidence, and generic fixes
-- offers a free extended Markdown report download from the same sanitized report
+- offers a free report pack from the same sanitized report
 
 Plugin purchase:
 
@@ -146,8 +146,8 @@ The current generator tests cover:
 
 API route tests also cover the local-first trust boundary:
 
-- the public one-scan report can download an extended Markdown report and
-  tokenized plugin zip from the same private report token
+- the public report can download a report pack and tokenized plugin zip from
+  the same private report token
 - the default paid session response does not mint a raw upload token or expose
   `/api/paid-uploads/`, tar/gzip commands, or raw bundle copy
 - `POST /api/paid-client-reports` accepts only waiver-gated sanitized aggregate

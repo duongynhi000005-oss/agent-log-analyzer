@@ -201,7 +201,7 @@ function renderActionPlan(report) {
   item.className = "action-item";
   item.innerHTML = [
     "<strong>No urgent manual fix detected.</strong>",
-    "<span>Download the extended report or use the custom plugin if you want these rules packaged for future sessions.</span>",
+    "<span>Download the report pack or use the custom plugin if you want these rules packaged for future sessions.</span>",
   ].join("");
   fixes.appendChild(item);
 }
@@ -1701,7 +1701,7 @@ function updateReportDownloadLinks(activeRoute) {
   const plugin = document.querySelector("#plugin-download-link");
   if (!activeRoute) return;
   if (extended) {
-    extended.href = `${window.location.origin}/api/public-reports/${activeRoute.jobID}/${activeRoute.token}/extended.md`;
+    extended.href = `${window.location.origin}/api/public-reports/${activeRoute.jobID}/${activeRoute.token}/download.zip`;
   }
   if (plugin) {
     plugin.href = `${window.location.origin}/api/public-artifacts/${activeRoute.jobID}/${activeRoute.token}/plugin.zip`;
