@@ -80,6 +80,7 @@ func buildMux(store app.APIStore) http.Handler {
 	mux.HandleFunc("POST /api/paid-uploads/{id}/finalize", finalizeTokenUploadHandler(store))
 	mux.HandleFunc("GET /api/public-reports/{id}/{token}", getPublicReportHandler(store))
 	mux.HandleFunc("GET /api/public-reports/{id}/{token}/extended.md", getExtendedReportHandler(store))
+	mux.HandleFunc("GET /api/public-reports/{id}/{token}/download.zip", getExtendedReportHandler(store))
 	mux.HandleFunc("GET /api/public-artifacts/{id}/{token}/plugin.zip", getPublicArtifactHandler(store))
 	mux.HandleFunc("GET /r/{id}/{token}", reportPageHandler(store))
 	mux.HandleFunc("GET /api/jobs/{id}", getJobHandler(store))

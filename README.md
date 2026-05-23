@@ -9,7 +9,7 @@ This repo starts with a Docker-local, end-to-end implementation:
 - upload only the sanitized report JSON
 - detect waste patterns and ecosystem fingerprints
 - generate a private-link report JSON
-- download a free extended report and generate a plugin artifact from the same scan
+- download a free report pack and generate a plugin artifact from the same scan
 - view the report in a static local web UI
 
 The production target is CDN + local deterministic CLI + report-only upload + durable private-link report storage. Local development intentionally avoids cloud dependencies so the complete flow can be tested before any infrastructure is provisioned.
@@ -37,7 +37,7 @@ There is intentionally no browser upload form. Agent logs live in hidden tool-sp
 3. The CLI prints the upload boundary and asks for confirmation.
 4. After confirmation, it sends only the sanitized report to `POST /api/client-reports`.
 5. The private report opens at `/r/{job_id}/{report_token}` and remains available for later review.
-6. The report page offers a free extended Markdown download from the same sanitized report. The custom plugin artifact is generated from the sanitized report data.
+6. The report page offers a free zip download containing a branded token-saving field guide PDF, a personalized PDF report, the sanitized report JSON, a plugin preview, and a partner voucher. The custom plugin artifact is generated from the sanitized report data.
 
 Legacy raw-log token upload and email/full-scan endpoints still exist for internal compatibility tests. They are not the public onboarding path.
 
@@ -65,7 +65,7 @@ VS Code-style SQLite state extraction for Cursor, Kiro, and Google Antigravity i
 docker compose up --build
 ```
 
-Open `http://localhost:8080` and use the displayed one-line local analyze/review/upload flow. The smoke scripts also exercise the free extended report, plugin artifact download, and legacy token path with `testdata/fixtures/sample-claude.jsonl` for backend compatibility.
+Open `http://localhost:8080` and use the displayed one-line local analyze/review/upload flow. The smoke scripts also exercise the free report pack, plugin artifact download, and legacy token path with `testdata/fixtures/sample-claude.jsonl` for backend compatibility.
 
 Smoke test:
 

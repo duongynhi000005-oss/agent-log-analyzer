@@ -2,12 +2,15 @@ package main
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -115,6 +118,7 @@ func TestSanitizePathRedactsDynamicIDs(t *testing.T) {
 		"/api/paid-uploads/job-1234567890/finalize",
 		"/api/public-reports/job-1234567890/token-secret",
 		"/api/public-reports/job-1234567890/token-secret/extended.md",
+		"/api/public-reports/job-1234567890/token-secret/download.zip",
 		"/api/public-artifacts/job-1234567890/token-secret/plugin.zip",
 		"/api/jobs/job-1234567890",
 		"/r/job-1234567890/token-secret",
@@ -226,7 +230,7 @@ func TestGetPublicArtifactReturnsPluginZipForSingleScan(t *testing.T) {
 	}
 }
 
-func TestGetExtendedReportDownloadsMarkdown(t *testing.T) {
+func TestGetExtendedReportDownloadsPackage(t *testing.T) {
 	store := fakeStore{
 		job: app.Job{
 			ID:              "job-1234567890",
@@ -240,12 +244,16 @@ func TestGetExtendedReportDownloadsMarkdown(t *testing.T) {
 			Score:          64,
 			EstimatedWaste: analyzer.WasteRange{Low: 12, High: 20},
 			Metrics:        analyzer.Metrics{Turns: 10, SessionCount: 3, EstimatedTokens: 12000, ToolOutputTokens: 4000},
+			Findings: []analyzer.Finding{
+				{ID: "repeated_file_reads", Title: "Excessive repeated file reads", Severity: "high", CostImpact: "medium-high", Evidence: analyzer.FindingEvidence{Count: 4}, Recommendation: "Use targeted search before rereading files."},
+			},
 			SecurityReceipt: analyzer.SecurityReceipt{
-				RawLogTTL: "not uploaded",
+				RawLogTTL:       "not uploaded",
+				SecretsRedacted: 2,
 			},
 		},
 	}
-	req := httptest.NewRequest(http.MethodGet, "/api/public-reports/job-1234567890/report-token/extended.md", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/public-reports/job-1234567890/report-token/download.zip", nil)
 	req.SetPathValue("id", "job-1234567890")
 	req.SetPathValue("token", "report-token")
 	rec := httptest.NewRecorder()
@@ -253,15 +261,50 @@ func TestGetExtendedReportDownloadsMarkdown(t *testing.T) {
 	getExtendedReportHandler(store).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
-		t.Fatalf("expected extended report status 200, got %d: %s", rec.Code, rec.Body.String())
+		t.Fatalf("expected report package status 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	if contentType := rec.Header().Get("Content-Type"); !strings.Contains(contentType, "text/markdown") {
-		t.Fatalf("expected markdown content type, got %q", contentType)
+	if contentType := rec.Header().Get("Content-Type"); !strings.Contains(contentType, "application/zip") {
+		t.Fatalf("expected zip content type, got %q", contentType)
 	}
-	for _, want := range []string{"# Agent Analyzer Extended Report", "Raw transcripts were not uploaded", "0", "64 / 100"} {
-		if !strings.Contains(rec.Body.String(), want) {
-			t.Fatalf("extended report missing %q:\n%s", want, rec.Body.String())
+	reader, err := zip.NewReader(bytes.NewReader(rec.Body.Bytes()), int64(rec.Body.Len()))
+	if err != nil {
+		t.Fatalf("expected zip package: %v", err)
+	}
+	names := map[string]bool{}
+	for _, file := range reader.File {
+		names[file.Name] = true
+	}
+	for _, want := range []string{
+		"agent-token-saving-field-guide.pdf",
+		"personalized-agent-analyzer-report.pdf",
+		"agent-analyzer-report.json",
+		"plugin-preview.md",
+		"partner-vouchers/spec-kitty-training-voucher.pdf",
+		"partner-vouchers/spec-kitty-training-voucher.txt",
+	} {
+		if !names[want] {
+			t.Fatalf("download package missing %q; got %#v", want, names)
 		}
+	}
+	guidePDF := mustZipEntry(t, reader, "agent-token-saving-field-guide.pdf")
+	reportPDF := mustZipEntry(t, reader, "personalized-agent-analyzer-report.pdf")
+	voucherPDF := mustZipEntry(t, reader, "partner-vouchers/spec-kitty-training-voucher.pdf")
+	for name, data := range map[string][]byte{"guide": guidePDF, "report": reportPDF, "voucher": voucherPDF} {
+		if !bytes.HasPrefix(data, []byte("%PDF")) {
+			t.Fatalf("%s PDF missing header: %q", name, data[:min(len(data), 8)])
+		}
+	}
+	reportJSON := mustZipEntry(t, reader, "agent-analyzer-report.json")
+	if !bytes.Contains(reportJSON, []byte(`"job_id": "job-1234567890"`)) || bytes.Contains(reportJSON, []byte("raw transcript")) {
+		t.Fatalf("sanitized JSON entry unexpected:\n%s", string(reportJSON))
+	}
+	preview := mustZipEntry(t, reader, "plugin-preview.md")
+	if !bytes.Contains(preview, []byte("Plugin Preview")) || !bytes.Contains(preview, []byte("sanitized report JSON only")) {
+		t.Fatalf("plugin preview missing expected copy:\n%s", string(preview))
+	}
+	voucher := mustZipEntry(t, reader, "partner-vouchers/spec-kitty-training-voucher.txt")
+	if !regexp.MustCompile(`Code: [A-Z0-9]{6}`).Match(voucher) || !bytes.Contains(voucher, []byte("20% off Spec Kitty trainings")) {
+		t.Fatalf("voucher missing code/discount:\n%s", string(voucher))
 	}
 }
 
@@ -295,6 +338,27 @@ func TestGetPublicArtifactReturnsPluginZipForEmailFullScan(t *testing.T) {
 	if !bytes.HasPrefix(rec.Body.Bytes(), []byte("PK")) {
 		t.Fatalf("expected zip response, got %q", rec.Body.String())
 	}
+}
+
+func mustZipEntry(t *testing.T, reader *zip.Reader, name string) []byte {
+	t.Helper()
+	for _, file := range reader.File {
+		if file.Name != name {
+			continue
+		}
+		rc, err := file.Open()
+		if err != nil {
+			t.Fatalf("open zip entry %s: %v", name, err)
+		}
+		defer rc.Close()
+		data, err := io.ReadAll(rc)
+		if err != nil {
+			t.Fatalf("read zip entry %s: %v", name, err)
+		}
+		return data
+	}
+	t.Fatalf("zip entry %s not found", name)
+	return nil
 }
 
 func TestReportPageServerRendersCompletedReport(t *testing.T) {
@@ -429,7 +493,7 @@ func TestReportPageServerRendersCompletedReport(t *testing.T) {
 		"Large shell/tool output overhead",
 		"Cap noisy command output",
 		"Get my optimization plugin",
-		"Download extended report",
+		"Download report pack",
 		"$10 / €10",
 		"0 model tokens used to generate this report.",
 		"Model tokens for report",

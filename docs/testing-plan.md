@@ -68,7 +68,7 @@ Full Docker smoke:
 ./scripts/smoke-local.sh
 ```
 
-This covers the local sanitized-report upload path, free extended report download, tokenized plugin zip download, plus the legacy token path and local waiver-gated paid bundle path kept for compatibility. It verifies aggregate report fetch and raw-transcript leak checks.
+This covers the local sanitized-report upload path, free report-pack download, tokenized plugin zip download, plus the legacy token path and local waiver-gated paid bundle path kept for compatibility. It verifies aggregate report fetch and raw-transcript leak checks.
 
 Production acceptance target before launch:
 
