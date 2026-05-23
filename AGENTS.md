@@ -29,22 +29,6 @@ AWS_PROFILE=claude-analyzer-prod terraform -chdir=infra/aws plan
 
 ## Production Usage Stats Access
 
-- The authenticated usage stats endpoint is `https://analyzer.spec-kitty.ai/api/admin/usage-stats`.
-- Access requires `Authorization: Bearer <token>`. The endpoint returns `401` without the correct bearer token.
-- On this Mac, the admin bearer token is stored in macOS Keychain as a generic password:
-
-```sh
-security find-generic-password \
-  -a robert \
-  -s 'claude-analyzer-prod/admin/usage-token' \
-  -w
-```
-
-- The durable backup copy is in AWS Secrets Manager under `claude-analyzer-prod/admin/usage-token`.
-- Do not paste the raw usage stats token into chat, docs, commits, logs, or shell history. Retrieve it into an environment variable when needed:
-
-```sh
-TOKEN="$(security find-generic-password -a robert -s 'claude-analyzer-prod/admin/usage-token' -w)"
-curl -H "Authorization: Bearer $TOKEN" \
-  "https://analyzer.spec-kitty.ai/api/admin/usage-stats?since=24h" | jq
-```
+- Production usage stats are exposed through a bearer-authenticated admin endpoint.
+- Do not document credential locations, service names, secret IDs, token hashes, or raw tokens in public repo files.
+- Retrieve the admin token only from the operator's private credential store, keep it out of shell history where practical, and never paste it into chat, docs, commits, or logs.
