@@ -430,7 +430,6 @@ func TestReportPageServerRendersCompletedReport(t *testing.T) {
 		"Cap noisy command output",
 		"Get my optimization plugin",
 		"Download extended report",
-		"$10 / €10",
 		"0 model tokens used to generate this report.",
 		"Model tokens for report",
 		"Copy line",
@@ -453,6 +452,9 @@ func TestReportPageServerRendersCompletedReport(t *testing.T) {
 	}
 	if strings.Contains(body, "<th>Turn</th>") {
 		t.Fatalf("server-rendered report regressed to tabular timeline: %s", body)
+	}
+	if strings.Contains(body, "Checkout enforcement is not active in this test build") || strings.Contains(body, "$10 / €10 target price") {
+		t.Fatalf("server-rendered report leaked test-build pricing copy: %s", body)
 	}
 	if strings.Contains(body, "Find out what&#39;s wasting your Claude Code tokens") || strings.Contains(body, "Run the local analyzer") {
 		t.Fatalf("server-rendered report returned onboarding shell instead of report: %s", body)

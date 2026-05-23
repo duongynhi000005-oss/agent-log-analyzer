@@ -266,7 +266,6 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
           <div class="upsell-action" id="plugin-purchase">
           <p><a class="plugin-cta" href="{{.ExtendedReportURL}}">Download extended report</a></p>
           {{if .ArtifactURL}}
-          <p class="command-note">Custom optimization plugin: $10 / €10 target price. Checkout enforcement is not active in this test build; this link generates the plugin from this report.</p>
           <p><a class="plugin-cta" href="{{.ArtifactURL}}">Download custom plugin</a></p>
           {{else}}
           <p class="command-note">Custom optimization plugin: $10 / €10. Payment checkout is the remaining step before public sales.</p>
