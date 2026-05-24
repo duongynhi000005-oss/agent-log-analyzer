@@ -143,12 +143,12 @@ func baseFiles(report analyzer.Report, pluginName string, recommendations []Tool
 	manifest := map[string]any{
 		"$schema":     "https://json.schemastore.org/claude-code-plugin-manifest.json",
 		"name":        pluginName,
-		"description": "Deterministic Claude Code codebase-navigation and tooling recommendations generated from a Claude Analyzer report.",
+		"description": "Benchmark-backed Claude Code token hygiene workflow generated from a Claude Analyzer report.",
 		"version":     pluginVersion(report),
 		"author": map[string]string{
 			"name": "Claude Log Analyzer",
 		},
-		"keywords": []string{"claude-code", "tokens", "context", "profiler", "code-intelligence", "mcp"},
+		"keywords": []string{"claude-code", "tokens", "context", "profiler", "benchmark", "tool-output"},
 	}
 	manifestJSON, _ := json.MarshalIndent(manifest, "", "  ")
 	files := []File{
@@ -286,43 +286,38 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 	}
 
 	add(ToolRecommendation{
-		ID:             "ccusage",
-		Category:       "metrics_telemetry",
-		Why:            "Telemetry only: parse local Claude Code JSONL logs for independent input, output, cache, cost, and burn-rate visibility before and after optimization; do not treat it as a direct token reducer.",
-		InstallCommand: "npx ccusage@latest",
-		Source:         "https://github.com/ryoppippi/ccusage",
-	})
-	add(ToolRecommendation{
-		ID:             "awesome-claude-code",
-		Category:       "ecosystem_index",
-		Why:            "Use as a monitored discovery source for Claude Code skills, hooks, plugins, statuslines, and orchestration tools; do not install from it directly.",
-		InstallCommand: "Review https://github.com/hesreallyhim/awesome-claude-code before adding any new third-party tool to the allowlist.",
-		Source:         "https://github.com/hesreallyhim/awesome-claude-code",
+		ID:             "agent-analyzer-workflow",
+		Category:       "built_in_plugin_workflow",
+		Why:            "Core recommendation: Agent Analyzer guidance reduced estimated tokens by 12,370, tool-output tokens by 12,698, Claude output tokens by 504, and published API-rate cost by 24.0% across three fresh noisy-repo runs while preserving the quality gate.",
+		InstallCommand: "Included in this plugin. Start with /agent-analyzer-review, then apply the generated output-budget, retrieval-hygiene, and session-hygiene skills before installing third-party tools.",
+		Source:         "docs/benchmarks/repeated-benchmark-suite.md",
 	})
 
 	if findingIDs["tool_output_bloat"] || findingIDs["context_growth_spikes"] {
 		add(ToolRecommendation{
 			ID:             "context-mode",
 			Category:       "context_defense",
-			Why:            "Targets tool-output/input-context tokens: route large tool outputs through sandboxed processing and summaries instead of flooding Claude's live context. Does not directly reduce visible output or reasoning tokens.",
+			Why:            "Conditional reducer: repeated runs cut estimated tokens by 12,359, tool-output tokens by 13,257, and published API-rate cost by 20.4%, but visible output rose on average. Use only for tool-output/context bloat, not as a generic output or reasoning-token reducer.",
 			InstallCommand: "/plugin marketplace add mksglu/context-mode\n/plugin install context-mode@context-mode\n/reload-plugins\n/context-mode:ctx-doctor",
 			Source:         "https://github.com/mksglu/context-mode",
 		})
 		add(ToolRecommendation{
 			ID:                "rtk",
 			Category:          "advanced_shell_compression",
-			Why:               "Targets tool-output/input-context tokens: compress noisy shell output before it reaches Claude. It does not directly reduce visible output or reasoning tokens; benchmark explicit commands such as `rtk go test` before enabling global hooks.",
+			Why:               "Conditional reducer: explicit RTK runs cut estimated tokens by 12,446, tool-output tokens by 12,716, and published API-rate cost by 18.2%. Use explicit commands first; do not enable global hooks until the user accepts the higher-risk waiver.",
 			InstallCommand:    "brew install rtk\n# Start with explicit commands such as: rtk go test ./...\n# Enable hooks with `rtk init -g` only after reviewing the waiver and confirming shell rewriting is acceptable.",
 			RequiredBinary:    "rtk",
 			BinaryInstallHint: "macOS: brew install rtk. Linux/macOS fallback: curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh",
 			Source:            "https://github.com/rtk-ai/rtk",
 		})
 		add(ToolRecommendation{
-			ID:             "claude-token-efficient",
-			Category:       "claude_md_optimization",
-			Why:            "Targets visible output tokens and future assistant verbosity, not tool-output or reasoning tokens. Only merge the smallest useful rules because persistent CLAUDE.md text adds input/context tokens.",
-			InstallCommand: "Ask Claude to review https://github.com/drona23/claude-token-efficient and propose a minimal CLAUDE.md diff; do not overwrite existing CLAUDE.md automatically.",
-			Source:         "https://github.com/drona23/claude-token-efficient",
+			ID:                "squeez",
+			Category:          "explicit_shell_compression",
+			Why:               "Conditional reducer: repeated Squeez runs cut estimated tokens by 8,471, tool-output tokens by 8,917, and published API-rate cost by 12.1%. Use it for noisy shell/log tasks, not as a general reasoning or output-token reducer.",
+			InstallCommand:    "Review the current Squeez installation instructions, then run noisy commands through Squeez explicitly before considering shell integration.",
+			RequiredBinary:    "squeez",
+			BinaryInstallHint: "Install only from the current upstream instructions after reviewing the source.",
+			Source:            "https://github.com/claudioemmanuel/squeez",
 		})
 	}
 
@@ -330,143 +325,29 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 		add(ToolRecommendation{
 			ID:                "grepai",
 			Category:          "local_semantic_retrieval",
-			Why:               "Targets input/context and tool-output tokens by replacing repeated grep/read loops with compact local retrieval. It does not directly reduce visible output or reasoning tokens.",
+			Why:               "Conditional reducer: path-constrained grepai runs cut estimated tokens by 14,567, tool-output tokens by 15,571, and published API-rate cost by 14.5%. Keep limits and path filters tight; it does not directly reduce visible output or reasoning tokens.",
 			InstallCommand:    "brew install yoanbernabeu/tap/grepai\ngrepai init\ngrepai watch",
 			RequiredBinary:    "grepai",
 			BinaryInstallHint: "Requires an embedding provider such as Ollama; install with curl script only after reviewing the GitHub source.",
 			Source:            "https://github.com/yoanbernabeu/grepai",
 		})
 		add(ToolRecommendation{
-			ID:             "claude-context",
-			Category:       "semantic_retrieval_mcp",
-			Why:            "Targets input/context tokens by adding MCP semantic code retrieval for large repositories where brute-force file exploration causes repeated rereads. It must amortize indexing/MCP overhead and does not directly reduce output or reasoning tokens.",
-			InstallCommand: "claude mcp add claude-context -e OPENAI_API_KEY=<openai-key> -e MILVUS_ADDRESS=<zilliz-endpoint> -e MILVUS_TOKEN=<zilliz-token> -- npx @zilliz/claude-context-mcp@latest",
-			Source:         "https://github.com/zilliztech/claude-context",
+			ID:                "semble",
+			Category:          "path_limited_semantic_retrieval",
+			Why:               "Positive reducer on this fixture: repeated Semble runs cut estimated tokens by 16,301, tool-output tokens by 16,060, Claude output by 480, and published API-rate cost by 41.5%. Use for bounded code retrieval where indexing/search output replaces repeated file reads.",
+			InstallCommand:    "Review the current Semble installation instructions, index the target repository, and run bounded path-limited searches before reading files.",
+			RequiredBinary:    "semble",
+			BinaryInstallHint: "Install only from the current upstream instructions after reviewing the source and local data/indexing behavior.",
+			Source:            "https://github.com/MinishLab/semble",
 		})
-	}
-
-	if findingIDs["retry_loop"] || findingIDs["context_growth_spikes"] {
-		add(ToolRecommendation{
-			ID:             "claude-code-hooks-mastery",
-			Category:       "implementation_reference",
-			Why:            "Use as a reference for SessionStart, PostToolUse, PreCompact, Stop, and UserPromptSubmit patterns when building workflow discipline.",
-			InstallCommand: "Review https://github.com/disler/claude-code-hooks-mastery before enabling any new hook behavior.",
-			Source:         "https://github.com/disler/claude-code-hooks-mastery",
-		})
-	}
-
-	if findingIDs["tool_output_bloat"] || findingIDs["retry_loop"] || findingIDs["context_growth_spikes"] {
-		add(ToolRecommendation{
-			ID:                "ccstatusline",
-			Category:          "statusline_telemetry",
-			Why:               "Telemetry only: expose session state in the statusline so users notice cost, git state, and workflow drift without adding messages to context. It is not a direct reducer of input, output, tool-output, or reasoning tokens.",
-			InstallCommand:    "Review https://github.com/sirmalloc/ccstatusline and install only if it does not conflict with Context Mode or the user's existing statusline.",
-			RequiredBinary:    "ccstatusline",
-			BinaryInstallHint: "Prefer the repository's current release/install instructions over copied commands.",
-			Source:            "https://github.com/sirmalloc/ccstatusline",
-		})
-	}
-
-	add(ToolRecommendation{
-		ID:                "claude-code-usage-monitor",
-		Category:          "burn_rate_monitoring",
-		Why:               "Telemetry only: optional live forecasting for users who care about session limits and burn-rate warnings outside Claude's context. It measures usage but does not directly reduce any token category.",
-		InstallCommand:    "uv tool install claude-monitor\nclaude-monitor",
-		RequiredBinary:    "claude-monitor",
-		BinaryInstallHint: "Alternative: pip install claude-monitor.",
-		Source:            "https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor",
-	})
-
-	for _, manager := range report.Ecosystem.PackageManagers {
-		switch manager {
-		case "bun", "npm", "pnpm", "yarn":
-			add(ToolRecommendation{
-				ID:                "typescript-lsp",
-				Category:          "code_intelligence",
-				Why:               "Use symbol navigation and diagnostics instead of repeated grep/read loops in JavaScript and TypeScript projects.",
-				InstallCommand:    "/plugin install typescript-lsp@claude-plugins-official",
-				RequiredBinary:    "typescript-language-server",
-				BinaryInstallHint: "npm install -g typescript typescript-language-server",
-				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
-			})
-		case "pip", "poetry", "uv":
-			add(ToolRecommendation{
-				ID:                "pyright-lsp",
-				Category:          "code_intelligence",
-				Why:               "Use Python symbol navigation and diagnostics instead of opening many candidate files.",
-				InstallCommand:    "/plugin install pyright-lsp@claude-plugins-official",
-				RequiredBinary:    "pyright-langserver",
-				BinaryInstallHint: "npm install -g pyright",
-				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
-			})
-		case "go":
-			add(ToolRecommendation{
-				ID:                "gopls-lsp",
-				Category:          "code_intelligence",
-				Why:               "Use Go definitions, references, and diagnostics before running broad searches or full test suites.",
-				InstallCommand:    "/plugin install gopls-lsp@claude-plugins-official",
-				RequiredBinary:    "gopls",
-				BinaryInstallHint: "go install golang.org/x/tools/gopls@latest",
-				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
-			})
-		case "cargo":
-			add(ToolRecommendation{
-				ID:                "rust-analyzer-lsp",
-				Category:          "code_intelligence",
-				Why:               "Use Rust symbol navigation and diagnostics to avoid context-heavy compile/search loops.",
-				InstallCommand:    "/plugin install rust-analyzer-lsp@claude-plugins-official",
-				RequiredBinary:    "rust-analyzer",
-				BinaryInstallHint: "rustup component add rust-analyzer",
-				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
-			})
-		case "composer":
-			add(ToolRecommendation{
-				ID:                "php-lsp",
-				Category:          "code_intelligence",
-				Why:               "Use PHP symbol navigation and diagnostics before broad text search across legacy code.",
-				InstallCommand:    "/plugin install php-lsp@claude-plugins-official",
-				RequiredBinary:    "intelephense",
-				BinaryInstallHint: "npm install -g intelephense",
-				Source:            "Anthropic Claude Code official marketplace code intelligence documentation",
-			})
-		}
-	}
-
-	if report.Ecosystem.VersionControl == "git" || containsString(report.Ecosystem.MCPServersKnown, "github") {
-		add(ToolRecommendation{
-			ID:             "github",
-			Category:       "mcp_integration",
-			Why:            "Fetch structured issue and PR context without pasting browser output or long terminal dumps into Claude.",
-			InstallCommand: "/plugin install github@claude-plugins-official",
-			Source:         "Anthropic Claude Code official marketplace external integrations documentation",
-		})
-	}
-	for _, plugin := range []struct {
-		id  string
-		why string
-	}{
-		{"notion", "Pull structured project documentation directly instead of repeatedly searching or pasting docs."},
-		{"linear", "Pull structured ticket context directly instead of copying long issue text into the session."},
-		{"sentry", "Inspect structured errors and traces instead of dumping logs into context."},
-		{"supabase", "Use a configured infrastructure integration for project metadata instead of ad hoc shell/API output."},
-	} {
-		if containsString(report.Ecosystem.MCPServersKnown, plugin.id) || containsString(report.Ecosystem.KnownPlugins, plugin.id) {
-			add(ToolRecommendation{
-				ID:             plugin.id,
-				Category:       "mcp_integration",
-				Why:            plugin.why,
-				InstallCommand: "/plugin install " + plugin.id + "@claude-plugins-official",
-				Source:         "Anthropic Claude Code official marketplace external integrations documentation",
-			})
-		}
 	}
 
 	if len(out) == 0 {
 		add(ToolRecommendation{
-			ID:             "inspect-language-stack",
-			Category:       "manual_review",
-			Why:            "No high-confidence language-server recommendation was inferred from the sanitized aggregate report. Inspect package manifests before installing code intelligence.",
-			InstallCommand: "Ask Claude to inspect package manifests and recommend only official code-intelligence plugins with matching binaries.",
+			ID:             "agent-analyzer-workflow",
+			Category:       "built_in_plugin_workflow",
+			Why:            "No high-confidence third-party reducer matched this report. Keep the built-in Agent Analyzer workflow and avoid unproven installs.",
+			InstallCommand: "Included in this plugin. Run /agent-analyzer-review and use the generated hygiene skills before adding tools.",
 			Source:         "Claude Analyzer deterministic fallback",
 		})
 	}
@@ -600,7 +481,7 @@ func installInstructions(pluginName, artifactURL string) Install {
 		`curl -fsS "$PLUGIN_URL" -o "$PLUGIN_ZIP"`,
 		`claude --plugin-dir "$PLUGIN_ZIP"`,
 	}, "\n")
-	prompt := "Install the generated Claude Analyzer optimization plugin for this session. Run the command below, explain what it installs, and ask for approval before executing it. Do not print plugin archive contents.\n\n```sh\n" + command + "\n```"
+	prompt := "Install the generated Claude Analyzer optimization plugin for this session. Explain that it contains benchmark-backed workflow guidance and only conditional reducers that survived repeated runs. Summarize the waiver and ask for approval before executing it. Do not print plugin archive contents.\n\n```sh\n" + command + "\n```"
 	return Install{
 		Command:          command,
 		ClaudePrompt:     prompt,
@@ -622,7 +503,7 @@ Generated from deterministic Claude Analyzer metrics.
 - Raw transcript included: no
 - Unknown private ecosystem names included: no
 
-Use the included skills and commands to make the codebase easier for Claude Code to navigate: lean CLAUDE.md layers, scoped skills, official code-intelligence plugins, and vetted MCP integrations. This plugin does not nag on Bash commands.
+Use the included skills and commands to run the practices that survived repeated benchmarks: scoped reads, output-budgeted commands, retry breaks, and session hygiene. The paid pack no longer recommends telemetry-only tools or negative benchmark tools as reducers.
 
 Start with /agent-analyzer-status, /agent-analyzer-review, and /agent-analyzer-tooling. For benchmark or proof work, run /agent-analyzer-proof before claiming savings.
 `, report.AggregateEvent.ScoreBucket, report.AggregateEvent.WasteBucket)
@@ -633,7 +514,7 @@ func waiverFile(acknowledgment string) string {
 
 ` + acknowledgment + `
 
-This remediation pack may ask Claude Code to recommend or install third-party software, including language servers, Claude Code plugins, and MCP-backed integrations. Those tools can execute code or access local/project data according to their own permissions.
+This remediation pack may ask Claude Code to recommend or install third-party software only when the matching benchmarked finding exists. Those tools can execute code or access local/project data according to their own permissions.
 
 Before installing anything:
 
@@ -649,12 +530,14 @@ Claude Analyzer is not responsible for damage, data loss, credential exposure, b
 
 func toolingCommand(recommendations []ToolRecommendation) string {
 	return `---
-description: Review the generated token-saving, code-intelligence, and MCP setup recommendations.
+description: Review the generated benchmark-backed token-saving setup recommendations.
 ---
 
 # Claude Analyzer Tooling Setup
 
 Read WAIVER.md first. Do not install anything until the user explicitly acknowledges the waiver and approves each command.
+
+Only install recommendations listed below. Do not add ccusage, ccstatusline, claude-context, Probe, Caveman, claude-rlm, or claude-token-efficient as token-saving reducers for this workflow; the benchmark either classified them as telemetry, negative, harness-specific, or too small for the default pack.
 
 Recommended actions:
 
@@ -663,7 +546,7 @@ Recommended actions:
 Procedure:
 
 1. Inspect the repository language stack and confirm each recommendation still applies.
-2. Prefer official Claude Code marketplace plugins and documented language-server binaries.
+2. Confirm the matching finding exists before installing a conditional tool.
 3. Ask before installing each binary or plugin.
 4. After installing plugins, run /reload-plugins.
 5. If any tool source differs from the recommendation, stop and ask the user.
@@ -685,8 +568,8 @@ Rules:
 2. Prefer subdirectory CLAUDE.md files for local build/test conventions.
 3. Start Claude in the relevant subdirectory when the task has a clear scope.
 4. Build or update a concise codebase map when top-level folders are not self-explanatory.
-5. Prefer LSP/code-intelligence lookups for definitions and references before broad grep/read loops.
-6. Use MCP integrations only for structured external context; do not paste large external pages or logs into the session.
+5. Prefer existing symbol navigation or targeted rg searches before broad grep/read loops.
+6. Avoid adding MCP servers merely because they exist; extra schemas and retrieval calls can increase context unless they replace repeated reads.
 
 Generated score bucket: %s
 Generated waste bucket: %s
@@ -695,7 +578,7 @@ Generated waste bucket: %s
 
 func toolingSetupSkill(recommendations []ToolRecommendation) string {
 	return `---
-description: Use when setting up vetted token-saving tools, language servers, Claude Code plugins, or MCP integrations.
+description: Use when setting up benchmark-backed token-saving tools.
 ---
 
 # Tooling Setup
@@ -708,11 +591,11 @@ Installation discipline:
 
 1. Read WAIVER.md to the user in summary form and get explicit acceptance before proceeding.
 2. Verify the current OS, package manager, and existing binaries.
-3. Install language-server binaries before the matching code-intelligence plugin.
-4. Use official Claude Code marketplace plugins where listed.
-5. Run /reload-plugins after plugin installation.
-6. If a recommended binary is already installed, do not reinstall it.
-7. If a repository has custom tooling, prefer its checked-in setup docs over generic install commands.
+3. Use explicit commands before enabling hooks or automatic shell integration.
+4. Run /reload-plugins after plugin installation.
+5. If a recommended binary is already installed, do not reinstall it.
+6. If a repository has custom tooling, prefer its checked-in setup docs over generic install commands.
+7. Treat telemetry-only tools as measurement aids, not as reducers.
 `
 }
 
@@ -798,7 +681,7 @@ description: Explain what proof is required before claiming the plugin reduces t
 
 # Agent Analyzer Proof
 
-This plugin was generated from a sanitized Claude Analyzer report. It can recommend better session hygiene and vetted tools, but savings claims require a controlled before/after benchmark.
+This plugin was generated from a sanitized Claude Analyzer report. It recommends the workflow and conditional tools that survived repeated benchmarking, but new savings claims still require a controlled before/after benchmark.
 
 Do not claim token savings until Claude Analyzer has measured both baseline and optimized logs. Name the token category: input/context, tool-output, visible output, cached input, telemetry-only, or reasoning tokens when the harness exposes reasoning usage.
 
@@ -806,6 +689,8 @@ Current generated evidence:
 
 - Efficiency score bucket: %s
 - Waste bucket: %s
+- Repeated Agent Analyzer benchmark: 12,370 fewer estimated tokens, 12,698 fewer tool-output tokens, 504 fewer Claude output tokens, and 24.0%% lower published API-rate cost across three fresh runs.
+- Scale rule: for comparable work, monthly savings = baseline monthly API-equivalent spend * 23.986%%. A team spending $5,000/month on similar Claude Sonnet coding work would save about $1,199/month.
 - Raw transcript included in plugin: no
 - Unknown private ecosystem names included in plugin: no
 
@@ -839,7 +724,7 @@ Review rules:
 1. Prioritize task completion quality over token reduction.
 2. Call out repeated reads, large unbounded command output, retry loops, and context pivots with concrete evidence.
 3. Recommend the smallest workflow change that reduces avoidable context.
-4. Prefer built-in shell discipline, targeted reads, and official code-intelligence plugins before third-party tools.
+4. Prefer built-in shell discipline and targeted reads before third-party tools.
 5. Distinguish input/context, tool-output, visible output, cached input, telemetry-only, and reasoning-token effects. Terse prose is not proof of lower full-session cost.
 6. Do not install software or edit project files.
 7. Do not claim savings unless Claude Analyzer measured both baseline and optimized logs.

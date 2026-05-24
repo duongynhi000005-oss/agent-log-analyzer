@@ -320,15 +320,15 @@ Acceptance:
 - [ ] Generate optimization pack artifact after successful payment.
 - [x] Define deterministic Claude plugin artifact contract.
 - [x] Add initial plugin artifact generator and archive safety tests.
-- [x] Replace Bash-nag hook concept with vetted code-intelligence/MCP recommendation pack.
-- [x] Add first GitHub-hosted token-saving tooling matrix.
+- [x] Replace Bash-nag hook concept with benchmark-backed Agent Analyzer workflow pack.
+- [x] Add narrowed token-saving tooling matrix; telemetry-only, negative, and too-small recommendations are excluded from the default reducer pack.
 - [ ] Add checkout waiver checkbox before paid install commands are revealed. (#33)
-- [ ] Complete public-tool vetting sprint for language servers, MCPs, Claude plugins, and skills. (#32)
-- [ ] Add analyzer signals for language stack detection beyond package-manager inference.
+- [ ] Continue public-tool vetting only as benchmark candidates; do not promote language servers, MCPs, Claude plugins, or skills into default reducer advice without repeated evidence. (#32)
+- [ ] Add analyzer signals for workload-specific benchmark matching beyond package-manager inference.
 - [ ] Wire paid scan aggregate metrics into plugin generation.
 - [ ] Render short-lived install page with plugin commands.
 - [ ] Store paid artifact in separate prefix/bucket with short TTL.
-- [ ] Add receipt/support email.
+- [ ] Add receipt/support email that repeats the analysis-first, benchmark-backed, no-unproven-tools message.
 - [ ] Add refund/support process.
 
 Acceptance:

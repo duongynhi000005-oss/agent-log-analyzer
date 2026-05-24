@@ -1,8 +1,8 @@
 {
-  "schema_version": "2026-05-23",
+  "schema_version": "2026-05-24",
   "benchmark_program": "claude-code-token-reduction-research",
   "status": "repeated_benchmark_complete",
-  "claim": "Three fresh baseline/optimized pairs are now published for every benchmarked tool recommendation. Agent Analyzer guidance reduced estimated, tool-output, visible output, native Claude cost, and published-rate estimated cost on the noisy benchmark while preserving the quality gate.",
+  "claim": "Three fresh baseline/optimized pairs are published for every benchmarked recommendation. Agent Analyzer guidance reduced estimated tokens, tool-output tokens, visible output, native Claude cost, and published API-rate estimated cost while preserving the quality gate. The paid plugin now recommends only the core workflow plus conditional reducers that worked, and removes telemetry-only or negative tools from token-saving advice.",
   "token_category_definitions": {
     "input_context_tokens": "Prompt text, project instructions, tool schemas, file reads, tool results, and prior conversation context sent back to the model.",
     "tool_output_tokens": "The subset of input/context tokens produced by shell, MCP, file, and search outputs.",
@@ -65,7 +65,14 @@
     "semble_repeated_tool_output_delta_mean": -16060.333333333334,
     "claude_rlm_discovery_estimated_token_delta_mean": 19476.666666666668,
     "claude_rlm_discovery_tool_output_delta_mean": 6020.333333333333,
-    "claude_rlm_discovery_root_native_cost_delta_mean_usd": -0.07532203333333334
+    "claude_rlm_discovery_root_native_cost_delta_mean_usd": -0.07532203333333334,
+    "agent_analyzer_guided_v3_repeated_published_api_cost_savings_percent": 23.986415315706576,
+    "agent_analyzer_guided_v3_monthly_savings_on_5000_usd": 1199.3207657853288,
+    "semble_repeated_published_api_cost_savings_percent": 41.46494678255211,
+    "rtk_repeated_published_api_cost_savings_percent": 18.153839473492326,
+    "context_mode_repeated_published_api_cost_savings_percent": 20.44835228575404,
+    "grepai_repeated_published_api_cost_savings_percent": 14.513454764088776,
+    "squeez_repeated_published_api_cost_savings_percent": 12.135861589457791
   },
   "recommendation_trials": [
     {
@@ -396,73 +403,73 @@
       "recommendation": "ccusage",
       "source": "https://github.com/ryoppippi/ccusage",
       "verdict": "measurement only",
-      "product_action": "Use as independent accounting, not as a savings claim."
+      "product_action": "Keep as optional measurement only; do not include in the paid reducer pack or call it a direct saver."
     },
     {
       "recommendation": "ccstatusline",
       "source": "https://github.com/sirmalloc/ccstatusline",
       "verdict": "visibility only",
-      "product_action": "Frame as statusline awareness, not direct token reduction."
+      "product_action": "Keep as optional awareness only; do not include in the paid reducer pack or call it a direct saver."
     },
     {
       "recommendation": "claude-context",
       "source": "https://github.com/zilliztech/claude-context",
-      "verdict": "negative on this fixture",
-      "product_action": "Downgrade until indexing and MCP search overhead amortizes on repeated task benchmarks."
+      "verdict": "removed from default advice",
+      "product_action": "Do not recommend for this workflow; repeated runs increased estimated tokens and published API-rate cost by 26.0%."
     },
     {
       "recommendation": "Context Mode",
       "source": "https://github.com/mksglu/context-mode",
       "verdict": "conditional repeated positive",
-      "product_action": "Recommend as tool-output/input-context batching, with a caveat that visible output rose on average."
+      "product_action": "Conditionally recommend for tool-output/input-context batching when matching bloat exists; repeated API-rate savings were 20.4%, but visible output rose on average."
     },
     {
       "recommendation": "grepai",
       "source": "https://github.com/yoanbernabeu/grepai",
       "verdict": "conditional repeated positive",
-      "product_action": "Recommend only with compact output, low result limits, and path filters."
+      "product_action": "Conditionally recommend only with compact output, low result limits, and path filters; repeated API-rate savings were 14.5%."
     },
     {
       "recommendation": "claude-token-efficient",
       "source": "https://github.com/drona23/claude-token-efficient",
-      "verdict": "modest repeated positive",
-      "product_action": "Recommend only as a minimal CLAUDE.md diff; do not overwrite existing guidance."
+      "verdict": "removed from default advice",
+      "product_action": "Do not include in the default pack; repeated API-rate savings were only 1.8%, so treat it as manual verbosity hygiene if requested."
     },
     {
       "recommendation": "RTK",
       "source": "https://github.com/rtk-ai/rtk",
       "verdict": "conditional repeated positive",
-      "product_action": "Recommend explicit commands first; do not default to global hooks."
+      "product_action": "Conditionally recommend explicit commands first; repeated API-rate savings were 18.2%, but global hooks require separate approval."
     },
     {
       "recommendation": "Probe",
       "source": "https://github.com/probelabs/probe",
-      "verdict": "negative on this fixture",
-      "product_action": "Do not add as a default recommendation for this task family."
+      "verdict": "removed from default advice",
+      "product_action": "Do not recommend as a reducer; repeated runs increased published API-rate cost by 16.6%."
     },
     {
       "recommendation": "Semble",
       "source": "https://github.com/MinishLab/semble",
       "verdict": "positive on this fixture",
-      "product_action": "Add as a scoped retrieval candidate, not a universal reducer."
+      "product_action": "Conditionally recommend for bounded retrieval when repeated reads exist; repeated API-rate savings were 41.5%."
     },
     {
       "recommendation": "Squeez",
       "source": "https://github.com/claudioemmanuel/squeez",
       "verdict": "conditional repeated positive",
-      "product_action": "Recommend as explicit shell-output compression, not as hidden global behavior."
+      "product_action": "Conditionally recommend for explicit shell/log compression; repeated API-rate savings were 12.1%."
     },
     {
       "recommendation": "Caveman",
       "source": "https://github.com/JuliusBrussee/caveman",
-      "verdict": "harness-specific mixed",
-      "product_action": "Keep out of default Claude plugin guidance; document that Codex benefited here while Claude Code got worse."
+      "verdict": "removed from default Claude advice",
+      "product_action": "Keep out of default Claude plugin guidance; Codex benefited here, but Claude Code got more expensive."
     },
     {
       "recommendation": "claude-rlm",
       "source": "https://github.com/Tenobrus/claude-rlm",
-      "verdict": "negative on current medium-context fixture",
-      "product_action": "Do not recommend from this benchmark; add a true high-context benchmark before judging its intended use case."
+      "verdict": "removed from default advice",
+      "product_action": "Do not recommend from this benchmark; it added analyzer-estimated tokens and tool output, and root stdout cost omits sub-agent usage."
     }
   ],
   "artifacts": {
@@ -496,7 +503,7 @@
     "gpt_5_3_codex": {
       "model_assumption": "gpt-5.3-codex",
       "source": "https://developers.openai.com/api/docs/pricing",
-      "token_category_source": "https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them",
+      "token_category_source": "https://help.openai.com/en/articles/20001106-codex-rate-card",
       "as_of": "2026-05-24",
       "rates_usd_per_mtok": {
         "input_tokens": 1.75,
@@ -621,7 +628,8 @@
     "fresh_context_required": true,
     "runner": "scripts/benchmark-repeat.sh",
     "status_note": "All named tool recommendations in the proof suite now have at least three fresh baseline/optimized pairs with passing quality gates. Strong claims still remain scoped to the tested fixture, harness, and token category.",
-    "published_aggregate_count": 13
+    "published_aggregate_count": 13,
+    "diagnostic_aggregate_count": 1
   },
   "repeated_suite_artifacts": {
     "agent-analyzer-guided-v3": {
@@ -634,7 +642,18 @@
       "native_cost_delta_mean": -0.04421946666666666,
       "codex_uncached_plus_output_delta_mean": null,
       "codex_reasoning_delta_mean": null,
-      "published_api_cost_delta_mean": -0.05920730000000001
+      "published_api_cost_delta_mean": -0.05920730000000001,
+      "published_api_cost_savings_percent": 23.986415315706576,
+      "published_api_cost_scaled_examples": {
+        "savings_rate": 0.23986415315706577,
+        "savings_percent": 23.986415315706576,
+        "weekly_100_usd": 23.986415315706576,
+        "weekly_500_usd": 119.93207657853289,
+        "monthly_2000_usd": 479.72830631413154,
+        "monthly_5000_usd": 1199.3207657853288,
+        "monthly_10000_usd": 2398.6415315706577,
+        "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent."
+      }
     },
     "caveman-claude": {
       "artifact": "reports/aggregate-caveman-claude.json",
@@ -646,7 +665,18 @@
       "native_cost_delta_mean": 0.009918916666666675,
       "codex_uncached_plus_output_delta_mean": null,
       "codex_reasoning_delta_mean": null,
-      "published_api_cost_delta_mean": 0.009211000000000006
+      "published_api_cost_delta_mean": 0.009211000000000006,
+      "published_api_cost_savings_percent": -3.890181251784393,
+      "published_api_cost_scaled_examples": {
+        "savings_rate": -0.03890181251784393,
+        "savings_percent": -3.890181251784393,
+        "weekly_100_usd": -3.890181251784393,
+        "weekly_500_usd": -19.450906258921965,
+        "monthly_2000_usd": -77.80362503568786,
+        "monthly_5000_usd": -194.50906258921964,
+        "monthly_10000_usd": -389.0181251784393,
+        "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent."
+      }
     },
     "caveman-codex": {
       "artifact": "reports/aggregate-caveman-codex.json",
@@ -658,7 +688,18 @@
       "native_cost_delta_mean": null,
       "codex_uncached_plus_output_delta_mean": -4739.0,
       "codex_reasoning_delta_mean": -2.0,
-      "published_api_cost_delta_mean": -0.03398558333333332
+      "published_api_cost_delta_mean": -0.03398558333333332,
+      "published_api_cost_savings_percent": 18.25562449081907,
+      "published_api_cost_scaled_examples": {
+        "savings_rate": 0.1825562449081907,
+        "savings_percent": 18.25562449081907,
+        "weekly_100_usd": 18.25562449081907,
+        "weekly_500_usd": 91.27812245409535,
+        "monthly_2000_usd": 365.1124898163814,
+        "monthly_5000_usd": 912.7812245409535,
+        "monthly_10000_usd": 1825.562449081907,
+        "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent."
+      }
     },
     "claude-context-limit3": {
       "artifact": "reports/aggregate-claude-context-limit3.json",
@@ -670,7 +711,18 @@
       "native_cost_delta_mean": 0.048434183333333346,
       "codex_uncached_plus_output_delta_mean": null,
       "codex_reasoning_delta_mean": null,
-      "published_api_cost_delta_mean": 0.0580381
+      "published_api_cost_delta_mean": 0.0580381,
+      "published_api_cost_savings_percent": -26.031832177994673,
+      "published_api_cost_scaled_examples": {
+        "savings_rate": -0.26031832177994674,
+        "savings_percent": -26.031832177994673,
+        "weekly_100_usd": -26.031832177994673,
+        "weekly_500_usd": -130.15916088997338,
+        "monthly_2000_usd": -520.6366435598935,
+        "monthly_5000_usd": -1301.5916088997337,
+        "monthly_10000_usd": -2603.1832177994675,
+        "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent."
+      }
     },
     "claude-rlm-discovery": {
       "artifact": "reports/aggregate-claude-rlm-discovery.json",
@@ -682,7 +734,9 @@
       "native_cost_delta_mean": -0.07532203333333334,
       "codex_uncached_plus_output_delta_mean": null,
       "codex_reasoning_delta_mean": null,
-      "published_api_cost_delta_mean": null
+      "published_api_cost_delta_mean": null,
+      "published_api_cost_savings_percent": null,
+      "published_api_cost_scaled_examples": null
     },
     "claude-token-efficient": {
       "artifact": "reports/aggregate-claude-token-efficient.json",
@@ -694,7 +748,18 @@
       "native_cost_delta_mean": -0.003828350000000008,
       "codex_uncached_plus_output_delta_mean": null,
       "codex_reasoning_delta_mean": null,
-      "published_api_cost_delta_mean": -0.004207599999999978
+      "published_api_cost_delta_mean": -0.004207599999999978,
+      "published_api_cost_savings_percent": 1.8278154095838144,
+      "published_api_cost_scaled_examples": {
+        "savings_rate": 0.018278154095838144,
+        "savings_percent": 1.8278154095838144,
+        "weekly_100_usd": 1.8278154095838144,
+        "weekly_500_usd": 9.139077047919072,
+        "monthly_2000_usd": 36.55630819167629,
+        "monthly_5000_usd": 91.39077047919072,
+        "monthly_10000_usd": 182.78154095838144,
+        "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent."
+      }
     },
     "codex-guided": {
       "artifact": "reports/aggregate-codex-guided.json",
@@ -706,7 +771,18 @@
       "native_cost_delta_mean": null,
       "codex_uncached_plus_output_delta_mean": -24368.666666666668,
       "codex_reasoning_delta_mean": -44.666666666666664,
-      "published_api_cost_delta_mean": -0.062392399999999994
+      "published_api_cost_delta_mean": -0.062392399999999994,
+      "published_api_cost_savings_percent": 31.82315865640947,
+      "published_api_cost_scaled_examples": {
+        "savings_rate": 0.31823158656409467,
+        "savings_percent": 31.82315865640947,
+        "weekly_100_usd": 31.82315865640947,
+        "weekly_500_usd": 159.11579328204735,
+        "monthly_2000_usd": 636.4631731281894,
+        "monthly_5000_usd": 1591.1579328204734,
+        "monthly_10000_usd": 3182.315865640947,
+        "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent."
+      }
     },
     "context-mode-batch": {
       "artifact": "reports/aggregate-context-mode-batch.json",
@@ -718,7 +794,18 @@
       "native_cost_delta_mean": -0.03638980000000003,
       "codex_uncached_plus_output_delta_mean": null,
       "codex_reasoning_delta_mean": null,
-      "published_api_cost_delta_mean": -0.05217530000000001
+      "published_api_cost_delta_mean": -0.05217530000000001,
+      "published_api_cost_savings_percent": 20.44835228575404,
+      "published_api_cost_scaled_examples": {
+        "savings_rate": 0.2044835228575404,
+        "savings_percent": 20.44835228575404,
+        "weekly_100_usd": 20.44835228575404,
+        "weekly_500_usd": 102.2417614287702,
+        "monthly_2000_usd": 408.9670457150808,
+        "monthly_5000_usd": 1022.417614287702,
+        "monthly_10000_usd": 2044.835228575404,
+        "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent."
+      }
     },
     "grepai-path-constrained": {
       "artifact": "reports/aggregate-grepai-path-constrained.json",
@@ -730,7 +817,18 @@
       "native_cost_delta_mean": -0.017597899999999972,
       "codex_uncached_plus_output_delta_mean": null,
       "codex_reasoning_delta_mean": null,
-      "published_api_cost_delta_mean": -0.03765690000000003
+      "published_api_cost_delta_mean": -0.03765690000000003,
+      "published_api_cost_savings_percent": 14.513454764088776,
+      "published_api_cost_scaled_examples": {
+        "savings_rate": 0.14513454764088776,
+        "savings_percent": 14.513454764088776,
+        "weekly_100_usd": 14.513454764088776,
+        "weekly_500_usd": 72.56727382044389,
+        "monthly_2000_usd": 290.26909528177555,
+        "monthly_5000_usd": 725.6727382044388,
+        "monthly_10000_usd": 1451.3454764088776,
+        "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent."
+      }
     },
     "probe": {
       "artifact": "reports/aggregate-probe.json",
@@ -742,7 +840,18 @@
       "native_cost_delta_mean": 0.038069033333333314,
       "codex_uncached_plus_output_delta_mean": null,
       "codex_reasoning_delta_mean": null,
-      "published_api_cost_delta_mean": 0.03833970000000001
+      "published_api_cost_delta_mean": 0.03833970000000001,
+      "published_api_cost_savings_percent": -16.62176644718018,
+      "published_api_cost_scaled_examples": {
+        "savings_rate": -0.16621766447180178,
+        "savings_percent": -16.62176644718018,
+        "weekly_100_usd": -16.62176644718018,
+        "weekly_500_usd": -83.10883223590089,
+        "monthly_2000_usd": -332.43532894360357,
+        "monthly_5000_usd": -831.0883223590089,
+        "monthly_10000_usd": -1662.1766447180178,
+        "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent."
+      }
     },
     "rtk-explicit": {
       "artifact": "reports/aggregate-rtk-explicit.json",
@@ -754,7 +863,18 @@
       "native_cost_delta_mean": -0.031478600000000016,
       "codex_uncached_plus_output_delta_mean": null,
       "codex_reasoning_delta_mean": null,
-      "published_api_cost_delta_mean": -0.0443161
+      "published_api_cost_delta_mean": -0.0443161,
+      "published_api_cost_savings_percent": 18.153839473492326,
+      "published_api_cost_scaled_examples": {
+        "savings_rate": 0.18153839473492325,
+        "savings_percent": 18.153839473492326,
+        "weekly_100_usd": 18.153839473492326,
+        "weekly_500_usd": 90.76919736746163,
+        "monthly_2000_usd": 363.0767894698465,
+        "monthly_5000_usd": 907.6919736746163,
+        "monthly_10000_usd": 1815.3839473492326,
+        "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent."
+      }
     },
     "semble": {
       "artifact": "reports/aggregate-semble.json",
@@ -766,7 +886,18 @@
       "native_cost_delta_mean": -0.08914713333333334,
       "codex_uncached_plus_output_delta_mean": null,
       "codex_reasoning_delta_mean": null,
-      "published_api_cost_delta_mean": -0.1141938
+      "published_api_cost_delta_mean": -0.1141938,
+      "published_api_cost_savings_percent": 41.46494678255211,
+      "published_api_cost_scaled_examples": {
+        "savings_rate": 0.41464946782552115,
+        "savings_percent": 41.46494678255211,
+        "weekly_100_usd": 41.46494678255211,
+        "weekly_500_usd": 207.32473391276056,
+        "monthly_2000_usd": 829.2989356510423,
+        "monthly_5000_usd": 2073.2473391276058,
+        "monthly_10000_usd": 4146.4946782552115,
+        "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent."
+      }
     },
     "squeez": {
       "artifact": "reports/aggregate-squeez.json",
@@ -778,7 +909,93 @@
       "native_cost_delta_mean": -0.014049233333333308,
       "codex_uncached_plus_output_delta_mean": null,
       "codex_reasoning_delta_mean": null,
-      "published_api_cost_delta_mean": -0.028223899999999996
+      "published_api_cost_delta_mean": -0.028223899999999996,
+      "published_api_cost_savings_percent": 12.135861589457791,
+      "published_api_cost_scaled_examples": {
+        "savings_rate": 0.12135861589457791,
+        "savings_percent": 12.135861589457791,
+        "weekly_100_usd": 12.135861589457791,
+        "weekly_500_usd": 60.679307947288954,
+        "monthly_2000_usd": 242.71723178915582,
+        "monthly_5000_usd": 606.7930794728895,
+        "monthly_10000_usd": 1213.586158945779,
+        "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent."
+      }
+    }
+  },
+  "cost_scale_claim": {
+    "suite": "agent-analyzer-guided-v3",
+    "baseline_mean_usd": 0.2468368,
+    "optimized_mean_usd": 0.1876295,
+    "delta_mean_usd": -0.0592073,
+    "savings_percent": 23.986415315706576,
+    "examples": {
+      "weekly_100_usd": 23.986415315706576,
+      "weekly_500_usd": 119.93207657853289,
+      "monthly_2000_usd": 479.7283063141315,
+      "monthly_5000_usd": 1199.3207657853288,
+      "monthly_10000_usd": 2398.6415315706577
+    },
+    "basis": "savings = comparable baseline spend * 0.23986415315706576; based on published Claude Sonnet 4.6 API-rate estimate for three fresh noisy-repo pairs."
+  },
+  "recommendation_policy": {
+    "default_pack": [
+      "agent-analyzer-workflow",
+      "output-budgeted-commands",
+      "retrieval-hygiene",
+      "session-hygiene",
+      "retry-breaker"
+    ],
+    "conditional_reducers": [
+      "semble",
+      "context-mode",
+      "rtk-explicit",
+      "grepai-path-constrained",
+      "squeez"
+    ],
+    "telemetry_only": [
+      "ccusage",
+      "ccstatusline",
+      "claude-code-usage-monitor",
+      "claude-code-usage-tracker"
+    ],
+    "removed_from_default_reducer_advice": [
+      "claude-context",
+      "probe",
+      "caveman-claude",
+      "claude-rlm",
+      "claude-token-efficient"
+    ],
+    "rule": "Recommend a third-party reducer only when it reduced the target token/cost category in repeated runs and the user report contains the matching waste pattern."
+  },
+  "primary_data": {
+    "directory": "docs/benchmarks/primary-data",
+    "manifest": "docs/benchmarks/primary-data/index.json",
+    "privacy_boundary": "Sanitized aggregate/comparison recordings are committed; raw logs, raw transcript stdout/stderr, plugin zips, and copied worktrees are excluded."
+  },
+  "diagnostic_suite_artifacts": {
+    "spec-kitty-agent-analyzer-guided": {
+      "artifact": "reports/aggregate-spec-kitty-agent-analyzer-guided.json",
+      "quality_passed": false,
+      "completed_repeats": 1,
+      "required_repeats": 1,
+      "estimated_token_delta_mean": -76237.0,
+      "tool_output_token_delta_mean": -79663.0,
+      "native_cost_delta_mean": -0.2766874999999998,
+      "codex_uncached_plus_output_delta_mean": null,
+      "codex_reasoning_delta_mean": null,
+      "published_api_cost_delta_mean": -0.4115565,
+      "published_api_cost_savings_percent": 40.45839010493161,
+      "published_api_cost_scaled_examples": {
+        "savings_rate": 0.4045839010493161,
+        "savings_percent": 40.45839010493161,
+        "weekly_100_usd": 40.45839010493161,
+        "weekly_500_usd": 202.29195052465803,
+        "monthly_2000_usd": 809.1678020986321,
+        "monthly_5000_usd": 2022.9195052465805,
+        "monthly_10000_usd": 4045.839010493161,
+        "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent."
+      }
     }
   }
 }

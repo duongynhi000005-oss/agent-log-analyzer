@@ -96,6 +96,22 @@ def published_api_estimate(suite_dir: Path) -> dict | None:
     deltas = [row["delta_usd"] for row in rows]
     baseline_values = [row["baseline_usd"] for row in rows]
     optimized_values = [row["optimized_usd"] for row in rows]
+    baseline_mean = statistics.fmean(baseline_values)
+    optimized_mean = statistics.fmean(optimized_values)
+    delta_mean = statistics.fmean(deltas)
+    savings_rate = (-delta_mean / baseline_mean) if baseline_mean else None
+    scaled_examples = None
+    if savings_rate is not None:
+        scaled_examples = {
+            "savings_rate": savings_rate,
+            "savings_percent": savings_rate * 100,
+            "weekly_100_usd": 100 * savings_rate,
+            "weekly_500_usd": 500 * savings_rate,
+            "monthly_2000_usd": 2000 * savings_rate,
+            "monthly_5000_usd": 5000 * savings_rate,
+            "monthly_10000_usd": 10000 * savings_rate,
+            "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent.",
+        }
     if harness == "claude":
         rates = {
             "model_assumption": "Claude Sonnet 4.6",
@@ -119,9 +135,12 @@ def published_api_estimate(suite_dir: Path) -> dict | None:
         "complete_cost_surface": not multi_session_runs,
         "multi_session_runs_not_in_stdout_usage": multi_session_runs,
         "rates": rates,
-        "baseline_mean_usd": statistics.fmean(baseline_values),
-        "optimized_mean_usd": statistics.fmean(optimized_values),
-        "delta_mean_usd": statistics.fmean(deltas),
+        "baseline_mean_usd": baseline_mean,
+        "optimized_mean_usd": optimized_mean,
+        "delta_mean_usd": delta_mean,
+        "savings_rate": savings_rate,
+        "savings_percent": savings_rate * 100 if savings_rate is not None else None,
+        "scaled_examples": scaled_examples,
         "delta_min_usd": min(deltas),
         "delta_max_usd": max(deltas),
         "runs": rows,
@@ -132,6 +151,7 @@ def published_api_estimate(suite_dir: Path) -> dict | None:
 def publish_aggregates() -> dict[str, dict]:
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     published = {}
+    diagnostic = {}
     for aggregate_path in sorted(SUITES_DIR.glob("*/aggregate.json")):
         suite_id = aggregate_path.parent.name
         aggregate = load_json(aggregate_path)
@@ -151,7 +171,7 @@ def publish_aggregates() -> dict[str, dict]:
             "privacy_boundary": "Raw Claude/Codex logs, raw prompts, local paths, and secrets are not included in public aggregate artifacts.",
         }
         public_path.write_text(json.dumps(public, indent=2) + "\n")
-        published[suite_id] = {
+        entry = {
             "artifact": f"reports/{public_name}",
             "quality_passed": public["quality_passed"],
             "completed_repeats": public["completed_repeats"],
@@ -166,15 +186,31 @@ def publish_aggregates() -> dict[str, dict]:
             ).get("delta_mean_usd") if (
                 public["published_api_cost_estimate"] or {}
             ).get("complete_cost_surface", True) else None,
+            "published_api_cost_savings_percent": (
+                public["published_api_cost_estimate"] or {}
+            ).get("savings_percent") if (
+                public["published_api_cost_estimate"] or {}
+            ).get("complete_cost_surface", True) else None,
+            "published_api_cost_scaled_examples": (
+                public["published_api_cost_estimate"] or {}
+            ).get("scaled_examples") if (
+                public["published_api_cost_estimate"] or {}
+            ).get("complete_cost_surface", True) else None,
         }
-    return published
+        if public["quality_passed"] and public["completed_repeats"] >= 3:
+            published[suite_id] = entry
+        else:
+            diagnostic[suite_id] = entry
+    return {"repeated": published, "diagnostic": diagnostic}
 
 
 def update_results_json(published: dict[str, dict]) -> None:
     results = load_json(RESULTS_JSON)
-    results["repeated_suite_artifacts"] = published
+    results["repeated_suite_artifacts"] = published["repeated"]
+    results["diagnostic_suite_artifacts"] = published["diagnostic"]
     results.setdefault("replication_policy", {})
-    results["replication_policy"]["published_aggregate_count"] = len(published)
+    results["replication_policy"]["published_aggregate_count"] = len(published["repeated"])
+    results["replication_policy"]["diagnostic_aggregate_count"] = len(published["diagnostic"])
     RESULTS_JSON.write_text(json.dumps(results, indent=2) + "\n")
 
 

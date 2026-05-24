@@ -40,6 +40,7 @@
         <p>One baseline/optimized pair is only a first-pass A/B result. Because LLM runs vary, recommendation verdicts should be promoted to repeated evidence only after at least three fresh baseline/optimized pairs pass the same quality gate from the same fixed commit and prompt.</p>
         <p>The permanent runner is <code>scripts/benchmark-repeat.sh</code>. It invokes the Claude or Codex harness three times by default, writes separate <code>run-01</code>, <code>run-02</code>, and <code>run-03</code> directories, then emits an <code>aggregate.json</code> with mean, median, min, max, and standard deviation for every numeric delta.</p>
         <p>The current proof suite has 3x aggregate artifacts for every named tool recommendation on the results page. MCP-backed claude-context repeats use per-run collection names so the semantic index does not leak across repeats.</p>
+        <p>The sanitized primary recordings are committed to the repository under <code>docs/benchmarks/primary-data/</code>. They include aggregate files, per-run comparison JSON, task prompts, exit statuses, and quality-gate output. Raw Claude/Codex logs and copied worktrees remain excluded by the privacy boundary.</p>
       </section>
 
       <section class="panel">
@@ -116,6 +117,10 @@
               <td>Published API cost estimate</td>
               <td>Reprices exposed token categories with current public API rates. This is separate from Claude Code or Codex native billing because those products can use credits, subscriptions, routing, and internal model work.</td>
             </tr>
+            <tr>
+              <td>Scaled savings</td>
+              <td>Converts a repeated benchmark percent into weekly or monthly spend examples. For Agent Analyzer: <code>($0.2468368 - $0.1876295) / $0.2468368 = 23.986%</code>, so comparable monthly savings are <code>baseline spend * 0.23986</code>.</td>
+            </tr>
           </tbody>
         </table>
       </section>
@@ -129,6 +134,7 @@
       <section class="panel">
         <h2>Why This Shapes The Plugin</h2>
         <p>The plugin is intentionally conservative because the benchmark showed that passive advice and extra tools can add context. The generated pack therefore favors concrete low-output workflows, explicit command recipes, and narrow recommendations over broad “install everything” guidance.</p>
+        <p>Negative and telemetry-only results changed the product: ccusage and ccstatusline stay measurement-only, while claude-context, Probe, Caveman for Claude, claude-rlm, and claude-token-efficient are no longer default reducer recommendations.</p>
       </section>
 
       <section class="panel">

@@ -11,12 +11,12 @@
     <main class="shell">
       <section class="hero" id="onboarding">
         <p class="eyebrow">deterministic profiler</p>
-        <h1>Find out what's wasting your Claude Code tokens.</h1>
-        <p class="subhead">Analyze one session locally. Upload only the sanitized report.</p>
+        <h1>Run the analysis before you install another Claude plugin.</h1>
+        <p class="subhead">Analyze one session locally, see the waste pattern, then download the benchmark-backed optimization pack only if the evidence fits.</p>
         <ul class="proof">
-          <li>Detect context bloat</li>
-          <li>Find retry loops and wasted reads</li>
-          <li>Get an installable optimization pack</li>
+          <li>Detect context bloat, noisy tool output, retry loops, and wasted reads</li>
+          <li>See token categories separately: input, tool output, visible output, cached input, and reasoning where available</li>
+          <li>Get an installable pack that excludes tools our benchmark disproved</li>
         </ul>
         <ul class="trust">
           <li>No account required</li>
@@ -84,8 +84,8 @@
         </div>
         <div class="upsell">
           <h2>Install the optimization pack generated from this analysis</h2>
-          <p>Unlock a waiver-gated paid scan across your 100 most recent Claude Code logs, then install a generated optimization pack with vetted context, retrieval, telemetry, and CLAUDE.md recommendations.</p>
-          <p>The paid scan will use the same local-first model: analyze the 100 most recent Claude Code sessions locally, review the sanitized aggregate, then upload only the generated report JSON.</p>
+          <p>Unlock a waiver-gated paid scan across your 100 most recent Claude Code logs, then install a generated optimization pack built around the practices that survived our repeated benchmark: scoped reads, output-budgeted commands, retry breaks, and conditional reducers only when your report shows the matching waste.</p>
+          <p>The paid scan uses the same local-first model: analyze the 100 most recent Claude Code sessions locally, review the sanitized aggregate, then upload only the generated report JSON. Telemetry-only and negative-result tools are not sold as token savers.</p>
           <label class="waiver">
             <input id="waiver-accepted" type="checkbox" />
             I understand that Claude Analyzer provides deterministic analysis and vetted setup recommendations, but any installation or code change is executed by Claude Code, my package manager, or third-party tools with my approval and at my own risk.

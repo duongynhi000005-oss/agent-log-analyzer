@@ -102,9 +102,14 @@ func TestGenerateCreatesClaudePluginArtifact(t *testing.T) {
 	if !containsCustomization(artifact, "retrieval-hygiene") || !containsCustomization(artifact, "output-budget") || !containsCustomization(artifact, "retry-breaker") {
 		t.Fatalf("missing expected customizations: %#v", artifact.Customizations)
 	}
-	for _, want := range []string{"ccusage", "context-mode", "grepai", "claude-context", "typescript-lsp", "github"} {
+	for _, want := range []string{"agent-analyzer-workflow", "context-mode", "grepai", "rtk", "semble", "squeez"} {
 		if !containsRecommendation(artifact, want) {
 			t.Fatalf("missing vetted recommendation %s: %#v", want, artifact.VettedRecommendations)
+		}
+	}
+	for _, removed := range []string{"ccusage", "ccstatusline", "claude-context", "claude-token-efficient", "typescript-lsp", "github"} {
+		if containsRecommendation(artifact, removed) {
+			t.Fatalf("did not expect ineffective or telemetry-only recommendation %s: %#v", removed, artifact.VettedRecommendations)
 		}
 	}
 	if !strings.Contains(artifact.RequiredAcknowledgment, "at my own risk") {
@@ -112,6 +117,9 @@ func TestGenerateCreatesClaudePluginArtifact(t *testing.T) {
 	}
 	if !strings.Contains(fileContent(t, artifact, "commands/agent-analyzer-proof.md"), "Do not claim token savings") {
 		t.Fatal("expected proof command to guard against unmeasured savings claims")
+	}
+	if !strings.Contains(fileContent(t, artifact, "commands/agent-analyzer-proof.md"), "24.0% lower published API-rate cost") {
+		t.Fatal("expected proof command to include repeated benchmark savings evidence")
 	}
 	if !strings.Contains(fileContent(t, artifact, "agents/token-hygiene-reviewer.md"), "Prioritize task completion quality") {
 		t.Fatal("expected reviewer agent to preserve task quality")

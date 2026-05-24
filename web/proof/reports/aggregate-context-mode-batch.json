@@ -115,6 +115,18 @@
     "baseline_mean_usd": 0.2551565,
     "optimized_mean_usd": 0.2029812,
     "delta_mean_usd": -0.05217530000000001,
+    "savings_rate": 0.2044835228575404,
+    "savings_percent": 20.44835228575404,
+    "scaled_examples": {
+      "savings_rate": 0.2044835228575404,
+      "savings_percent": 20.44835228575404,
+      "weekly_100_usd": 20.44835228575404,
+      "weekly_500_usd": 102.2417614287702,
+      "monthly_2000_usd": 408.9670457150808,
+      "monthly_5000_usd": 1022.417614287702,
+      "monthly_10000_usd": 2044.835228575404,
+      "basis": "Scaled linearly from the suite's optimized-vs-baseline published API-rate delta: savings = comparable baseline spend * savings_percent."
+    },
     "delta_min_usd": -0.09097019999999997,
     "delta_max_usd": 0.005303099999999977,
     "runs": [
