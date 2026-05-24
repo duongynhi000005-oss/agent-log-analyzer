@@ -63,8 +63,16 @@ def codex_api_cost(usage: dict) -> float:
 def published_api_estimate(suite_dir: Path) -> dict | None:
     rows = []
     harness = None
+    multi_session_runs = []
     for comparison_path in sorted(suite_dir.glob("run-*/comparison.json")):
+        run_dir = comparison_path.parent
         comparison = load_json(comparison_path)
+        for label in ("baseline", "optimized"):
+            paths = run_dir / f"{label}.log-paths"
+            if paths.exists():
+                count = len([line for line in paths.read_text().splitlines() if line.strip()])
+                if count > 1:
+                    multi_session_runs.append({"run": run_dir.name, "label": label, "session_count": count})
         if "baseline_claude_usage" in comparison:
             harness = "claude"
             baseline = claude_api_cost(comparison["baseline_claude_usage"])
@@ -108,6 +116,8 @@ def published_api_estimate(suite_dir: Path) -> dict | None:
         note = "Uses Codex JSON usage fields repriced at published GPT-5.3-Codex Standard API rates. Reasoning tokens are billed at the output-token rate in this estimate."
     return {
         "harness": harness,
+        "complete_cost_surface": not multi_session_runs,
+        "multi_session_runs_not_in_stdout_usage": multi_session_runs,
         "rates": rates,
         "baseline_mean_usd": statistics.fmean(baseline_values),
         "optimized_mean_usd": statistics.fmean(optimized_values),
@@ -115,7 +125,7 @@ def published_api_estimate(suite_dir: Path) -> dict | None:
         "delta_min_usd": min(deltas),
         "delta_max_usd": max(deltas),
         "runs": rows,
-        "note": note,
+        "note": note if not multi_session_runs else note + " This suite used additional Claude sessions whose usage is not included in the root stdout usage fields, so this API estimate is root-session-only and must not be used as a full cost claim.",
     }
 
 
@@ -153,7 +163,9 @@ def publish_aggregates() -> dict[str, dict]:
             "codex_reasoning_delta_mean": metric_mean(public, "codex_reasoning_output_tokens"),
             "published_api_cost_delta_mean": (
                 public["published_api_cost_estimate"] or {}
-            ).get("delta_mean_usd"),
+            ).get("delta_mean_usd") if (
+                public["published_api_cost_estimate"] or {}
+            ).get("complete_cost_surface", True) else None,
         }
     return published
 

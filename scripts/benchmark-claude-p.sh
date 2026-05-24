@@ -24,6 +24,7 @@ Optional:
   OPTIMIZED_SETUP_COMMAND="cp /tmp/CLAUDE.md CLAUDE.md"
   OPTIMIZED_MCP_CONFIG_FILE=/path/to/mcp.json
   OPTIMIZED_PRE_TASK_PROMPT_FILE=/path/to/warmup-prompt.txt
+  ANALYZE_ALL_CLAUDE_LOGS=1
   TOOLING_REVIEW_ENABLED=1
 
 The script creates two isolated git worktrees from the same commit, runs the
@@ -60,6 +61,7 @@ OPTIMIZED_SETUP_COMMAND="${OPTIMIZED_SETUP_COMMAND:-}"
 OPTIMIZED_MCP_CONFIG_FILE="${OPTIMIZED_MCP_CONFIG_FILE:-}"
 OPTIMIZED_PRE_TASK_PROMPT_FILE="${OPTIMIZED_PRE_TASK_PROMPT_FILE:-}"
 TOOLING_REVIEW_ENABLED="${TOOLING_REVIEW_ENABLED:-1}"
+ANALYZE_ALL_CLAUDE_LOGS="${ANALYZE_ALL_CLAUDE_LOGS:-0}"
 
 if [[ ! -f "$TASK_PROMPT_FILE" ]]; then
   echo "TASK_PROMPT_FILE does not exist: $TASK_PROMPT_FILE" >&2
@@ -134,6 +136,39 @@ print(max(logs, key=lambda p: p.stat().st_mtime))
 PY
 }
 
+log_for_session_id() {
+  local session_id="$1"
+  python3 - "$session_id" <<'PY'
+import sys
+from pathlib import Path
+
+session_id = sys.argv[1]
+matches = list(Path.home().glob(f".claude/projects/**/{session_id}.jsonl"))
+if not matches:
+    raise SystemExit(f"no Claude Code JSONL log found for session {session_id}")
+print(max(matches, key=lambda p: p.stat().st_mtime))
+PY
+}
+
+logs_after_marker_for_worktree() {
+  local marker="$1"
+  local worktree="$2"
+  python3 - "$marker" "$worktree" <<'PY'
+import sys
+from pathlib import Path
+
+marker = Path(sys.argv[1]).stat().st_mtime
+worktree = Path(sys.argv[2]).resolve()
+encoded = "".join(ch if ch.isalnum() else "-" for ch in str(worktree))
+logs = [
+    p for p in Path.home().glob(".claude/projects/**/*.jsonl")
+    if p.stat().st_mtime >= marker and encoded in str(p)
+]
+for path in sorted(logs, key=lambda p: p.stat().st_mtime):
+    print(path)
+PY
+}
+
 run_claude_task() {
   local label="$1"
   local worktree="$2"
@@ -194,12 +229,77 @@ except Exception as exc:
 if result.get("is_error"):
     raise SystemExit(f"{label}: Claude returned is_error=true: {result.get('result')}")
 PY
-  latest_log_after "$marker" >"$OUT_DIR/$label.log-path"
+  local session_id
+  session_id="$(python3 - "$stdout_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+print(json.loads(Path(sys.argv[1]).read_text()).get("session_id", ""))
+PY
+)"
+  if [[ -n "$session_id" ]]; then
+    log_for_session_id "$session_id" >"$OUT_DIR/$label.log-path"
+  else
+    latest_log_after "$marker" >"$OUT_DIR/$label.log-path"
+  fi
+  if [[ "$ANALYZE_ALL_CLAUDE_LOGS" == "1" ]]; then
+    logs_after_marker_for_worktree "$marker" "$worktree" >"$OUT_DIR/$label.log-paths"
+    if ! grep -Fxq "$(cat "$OUT_DIR/$label.log-path")" "$OUT_DIR/$label.log-paths"; then
+      cat "$OUT_DIR/$label.log-path" >>"$OUT_DIR/$label.log-paths"
+    fi
+  fi
 }
 
 analyze_log() {
   local label="$1"
   local log_path
+  if [[ "$ANALYZE_ALL_CLAUDE_LOGS" == "1" && -s "$OUT_DIR/$label.log-paths" ]]; then
+    local report_dir="$OUT_DIR/$label-reports"
+    rm -rf "$report_dir"
+    mkdir -p "$report_dir"
+    local index=0
+    while IFS= read -r log_path; do
+      [[ -z "$log_path" ]] && continue
+      index=$((index + 1))
+      go run "$ANALYZER_REPO/cmd/claude-analyzer" analyze \
+        --log "$log_path" \
+        --out "$report_dir/report-$(printf '%02d' "$index").json" >"$report_dir/report-$(printf '%02d' "$index").txt"
+    done <"$OUT_DIR/$label.log-paths"
+    python3 - "$report_dir" "$OUT_DIR/$label-report.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+report_dir = Path(sys.argv[1])
+out_path = Path(sys.argv[2])
+reports = [json.loads(path.read_text()) for path in sorted(report_dir.glob("report-*.json"))]
+if not reports:
+    raise SystemExit("no reports to aggregate")
+aggregate = reports[0]
+metrics = aggregate["metrics"]
+for key in ("turns", "estimated_tokens", "tool_output_tokens", "rereads", "context_growth_events", "failed_commands"):
+    metrics[key] = sum(report["metrics"].get(key, 0) for report in reports)
+metrics["retry_depth_max"] = max(report["metrics"].get("retry_depth_max", 0) for report in reports)
+metrics["session_count"] = len(reports)
+total_tokens = max(metrics["estimated_tokens"], 1)
+aggregate["estimated_waste_pct"] = {
+    "low": round(sum(report["metrics"].get("estimated_tokens", 0) * report.get("estimated_waste_pct", {}).get("low", 0) for report in reports) / total_tokens),
+    "high": round(sum(report["metrics"].get("estimated_tokens", 0) * report.get("estimated_waste_pct", {}).get("high", 0) for report in reports) / total_tokens),
+}
+aggregate["score"] = round(sum(report.get("score", 0) for report in reports) / len(reports))
+aggregate["findings"] = [finding for report in reports for finding in report.get("findings", [])]
+aggregate["timeline"] = []
+aggregate["immediate_fixes"] = sorted({fix for report in reports for fix in report.get("immediate_fixes", [])})
+aggregate["aggregate_event"]["event"] = "claude_analyzer_multi_session_report"
+aggregate["aggregate_event"]["findings"] = {
+    finding.get("id", "unknown"): finding.get("cost_impact", "unknown")
+    for finding in aggregate["findings"]
+}
+out_path.write_text(json.dumps(aggregate, indent=2) + "\n")
+PY
+    return
+  fi
   log_path="$(cat "$OUT_DIR/$label.log-path")"
   go run "$ANALYZER_REPO/cmd/claude-analyzer" analyze \
     --log "$log_path" \
@@ -321,6 +421,7 @@ def summarize(report, label):
         "retry_depth_max": metrics["retry_depth_max"],
         "context_growth_events": metrics["context_growth_events"],
         "failed_commands": metrics["failed_commands"],
+        "session_count": metrics.get("session_count", 1),
     }
 
 def usage_summary(stdout):

@@ -80,6 +80,21 @@
       }
     },
     {
+      "id": "claude-rlm-discovery",
+      "tool": "claude-rlm",
+      "harness": "claude",
+      "guidance_file": "docs/benchmarks/fixtures/guidance/claude-rlm-guidance.txt",
+      "requires": [
+        "tmux"
+      ],
+      "env": {
+        "AGENT_PLUGIN_ENABLED": "0",
+        "TOOLING_REVIEW_ENABLED": "0",
+        "ANALYZE_ALL_CLAUDE_LOGS": "1",
+        "OPTIMIZED_SETUP_COMMAND": "RLM_SOURCE=\"${RLM_SKILL_SOURCE:-$ANALYZER_REPO/.data/benchmarks/external-tools/claude-rlm/rlm-skill}\"; test -d \"$RLM_SOURCE\" || { echo \"Missing claude-rlm skill. Clone https://github.com/Tenobrus/claude-rlm to $ANALYZER_REPO/.data/benchmarks/external-tools/claude-rlm or set RLM_SKILL_SOURCE.\"; exit 2; }; mkdir -p .benchmark-tools; rm -rf .benchmark-tools/rlm-skill; cp -R \"$RLM_SOURCE\" .benchmark-tools/rlm-skill"
+      }
+    },
+    {
       "id": "rtk-explicit",
       "tool": "RTK",
       "harness": "claude",
