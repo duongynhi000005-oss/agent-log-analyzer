@@ -81,6 +81,11 @@ func TestGenerateCreatesClaudePluginArtifact(t *testing.T) {
 		"skills/retry-breaker/SKILL.md",
 		"commands/claude-analyzer-status.md",
 		"commands/claude-analyzer-tooling.md",
+		"commands/agent-analyzer-proof.md",
+		"commands/agent-analyzer-review.md",
+		"commands/agent-analyzer-status.md",
+		"commands/agent-analyzer-tooling.md",
+		"agents/token-hygiene-reviewer.md",
 	} {
 		if !hasFile(artifact, path) {
 			t.Fatalf("expected artifact file %s in %#v", path, artifact.Files)
@@ -104,6 +109,23 @@ func TestGenerateCreatesClaudePluginArtifact(t *testing.T) {
 	}
 	if !strings.Contains(artifact.RequiredAcknowledgment, "at my own risk") {
 		t.Fatalf("expected liability acknowledgment, got %q", artifact.RequiredAcknowledgment)
+	}
+	if !strings.Contains(fileContent(t, artifact, "commands/agent-analyzer-proof.md"), "Do not claim token savings") {
+		t.Fatal("expected proof command to guard against unmeasured savings claims")
+	}
+	if !strings.Contains(fileContent(t, artifact, "agents/token-hygiene-reviewer.md"), "Prioritize task completion quality") {
+		t.Fatal("expected reviewer agent to preserve task quality")
+	}
+	if !strings.Contains(fileContent(t, artifact, "skills/output-budget/SKILL.md"), "go test ./... >/tmp/go-test.log") {
+		t.Fatal("expected output-budget skill to include quiet Go verification guidance")
+	}
+	if !strings.Contains(fileContent(t, artifact, "skills/retrieval-hygiene/SKILL.md"), "Do not use Glob") {
+		t.Fatal("expected retrieval-hygiene skill to discourage broad discovery")
+	}
+	for _, rec := range artifact.VettedRecommendations {
+		if rec.ID == "rtk" && !strings.Contains(rec.InstallCommand, "Start with explicit commands") {
+			t.Fatalf("expected RTK recommendation to avoid defaulting to global hooks: %#v", rec)
+		}
 	}
 }
 
@@ -181,6 +203,17 @@ func hasFile(artifact Artifact, path string) bool {
 		}
 	}
 	return false
+}
+
+func fileContent(t *testing.T, artifact Artifact, path string) string {
+	t.Helper()
+	for _, file := range artifact.Files {
+		if file.Path == path {
+			return file.Content
+		}
+	}
+	t.Fatalf("missing artifact file %s", path)
+	return ""
 }
 
 func containsCustomization(artifact Artifact, id string) bool {
