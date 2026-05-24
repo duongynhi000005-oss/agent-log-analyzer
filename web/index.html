@@ -3,106 +3,370 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Claude Log Analyzer</title>
+    <title>Agent Analyzer | Deterministic Profiler for Agentic Coding Logs</title>
+    <meta name="description" content="Agent Analyzer is a local-first deterministic profiler for agentic coding logs from Claude Code, Codex, OpenCode, Cursor, Kiro, Claude Desktop MCP, and Google Antigravity. Find token waste, then apply benchmark-backed remediation without uploading raw transcripts." />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="author" content="Priivacy.ai" />
+    <meta name="application-name" content="Agent Analyzer" />
+    <meta name="theme-color" content="#0d1117" />
+    <meta name="keywords" content="Claude Code token profiler, Codex log analyzer, OpenCode log analyzer, agentic coding profiler, AI coding workflow profiler, context bloat, retry loops, token waste, local-first log analysis" />
+    <link rel="canonical" href="https://analyzer.spec-kitty.ai/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Agent Analyzer" />
+    <meta property="og:title" content="Agent Analyzer | Deterministic Profiler for Agentic Coding Logs" />
+    <meta property="og:description" content="Analyze supported agentic coding logs locally. Upload only sanitized report JSON and get a deterministic token-waste profiler report." />
+    <meta property="og:url" content="https://analyzer.spec-kitty.ai/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Agent Analyzer | Deterministic Profiler for Agentic Coding Logs" />
+    <meta name="twitter:description" content="Local-first deterministic profiler for supported agentic coding log token waste." />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/vendor/tippy/tippy.css" />
     <link rel="stylesheet" href="/styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://analyzer.spec-kitty.ai/#organization",
+            "name": "Priivacy.ai",
+            "url": "https://analyzer.spec-kitty.ai/",
+            "sameAs": [
+              "https://github.com/Priivacy-ai/agent-log-analyzer",
+              "https://www.npmjs.com/package/agent-analyzer"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://analyzer.spec-kitty.ai/#website",
+            "name": "Agent Analyzer",
+            "url": "https://analyzer.spec-kitty.ai/",
+            "publisher": {
+              "@id": "https://analyzer.spec-kitty.ai/#organization"
+            }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://analyzer.spec-kitty.ai/#software",
+            "name": "Agent Analyzer",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "macOS, Linux, Windows",
+            "url": "https://analyzer.spec-kitty.ai/",
+            "downloadUrl": "https://www.npmjs.com/package/agent-analyzer",
+            "codeRepository": "https://github.com/Priivacy-ai/agent-log-analyzer",
+            "isAccessibleForFree": true,
+            "description": "Local-first deterministic profiler for supported agentic coding logs that detects token waste, repeated reads, retry loops, context bloat, and tool-output overhead, then turns benchmark-backed findings into remediation guidance.",
+            "featureList": [
+              "Local Claude Code, Codex, OpenCode, Claude Desktop MCP, Cursor, Kiro, and Google Antigravity log parsing",
+              "Sanitized report JSON upload",
+              "Deterministic token-waste findings",
+              "Context bloat and retry-loop detection",
+              "Benchmark-backed optimization plugin flow"
+            ],
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/InStock"
+            },
+            "publisher": {
+              "@id": "https://analyzer.spec-kitty.ai/#organization"
+            }
+          },
+          {
+            "@type": "HowTo",
+            "@id": "https://analyzer.spec-kitty.ai/#howto",
+            "name": "Analyze agentic coding logs with Agent Analyzer",
+            "totalTime": "PT5M",
+            "tool": [
+              {
+                "@type": "HowToTool",
+                "name": "npx"
+              },
+              {
+                "@type": "HowToTool",
+                "name": "agent-analyzer"
+              }
+            ],
+            "step": [
+              {
+                "@type": "HowToStep",
+                "position": 1,
+                "name": "Run the local analyzer",
+                "text": "Run npx --yes agent-analyzer@latest run on your machine."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 2,
+                "name": "Review sanitized JSON",
+                "text": "Agent Analyzer parses local logs, redacts secrets locally, and writes a reviewable sanitized report JSON."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 3,
+                "name": "Upload sanitized report",
+                "text": "Approve the upload boundary so only the sanitized report JSON is sent to the hosted report page."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 4,
+                "name": "Read deterministic findings",
+                "text": "Use the report to inspect token waste, repeated reads, retry loops, context growth, and benchmark-backed remediation."
+              }
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://analyzer.spec-kitty.ai/#faq",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Are raw Claude Code, Codex, or OpenCode logs uploaded?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. The public flow analyzes logs locally and uploads only the generated sanitized report JSON after user approval."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does Agent Analyzer use model tokens to generate the report?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. The report is generated from deterministic local parsing and server-side rendering, not from an LLM reading raw logs."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What agent logs are supported?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Agent Analyzer currently auto-discovers Claude Code, Codex, OpenCode, Claude Desktop MCP, Cursor, Kiro, and Google Antigravity logs."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
-    <main class="shell">
-      <section class="hero" id="onboarding">
+    <main class="shell" itemscope itemtype="https://schema.org/SoftwareApplication" itemid="https://analyzer.spec-kitty.ai/#software">
+      <section class="hero" id="onboarding" aria-labelledby="page-title">
         <p class="eyebrow">deterministic profiler</p>
-        <h1>Run the analysis before you install another Claude plugin.</h1>
-        <p class="subhead">Analyze one session locally, see the waste pattern, then download the benchmark-backed optimization pack only if the evidence fits.</p>
-        <ul class="proof">
+        <h1 id="page-title" itemprop="name">
+          Find out what's wasting your
+          <span class="tool-rotator" aria-hidden="true">
+            <span>Claude Code</span>
+            <span>Codex</span>
+            <span>OpenCode</span>
+            <span>Cursor</span>
+            <span>Kiro</span>
+            <span>Antigravity</span>
+          </span>
+          <span class="sr-only">Claude Code, Codex, OpenCode, Cursor, Kiro, or Antigravity</span>
+          tokens.
+        </h1>
+        <p class="subhead" itemprop="description">Analyze one session locally. Upload only the sanitized report. See which fixes are worth installing before you change your setup.</p>
+        <p class="capacity-note">In three fresh Claude Code benchmark pairs, Agent Analyzer guidance cut published API-rate cost by 23.986% while preserving the <code>go test ./...</code> quality gate. On $5,000/month of comparable Claude Sonnet coding usage, that is about $1,199/month of recoverable capacity when the same waste pattern is present.</p>
+        <h2 class="sr-only">What Agent Analyzer detects</h2>
+        <ul class="proof" aria-label="Agent Analyzer detection capabilities">
           <li>Detect context bloat, noisy tool output, retry loops, and wasted reads</li>
-          <li>See token categories separately: input, tool output, visible output, cached input, and reasoning where available</li>
-          <li>Get an installable pack that excludes tools our benchmark disproved</li>
+          <li>Separate input, cached input, tool output, visible output, and reasoning tokens where the harness exposes them</li>
+          <li>Get an installable optimization pack narrowed to the practices our benchmark supported</li>
         </ul>
-        <section class="proof-card" aria-labelledby="proof-heading">
-          <p class="eyebrow">plugin proof</p>
-          <h2 id="proof-heading">24.0% lower published API-rate cost in the repeated Agent Analyzer run.</h2>
-          <p>Three fresh Claude Code <code>-p</code> pairs, same prompt, same commit, and the same <code>go test ./...</code> quality gate. The core workflow averaged 12,370 fewer estimated tokens and 12,698 fewer tool-output tokens. At comparable team scale, that is about $1,199/month on $5,000/month of Claude Sonnet API-equivalent coding usage.</p>
-          <a class="text-link" href="/proof/">View benchmark proof</a>
-        </section>
-        <ul class="trust">
+        <h2 class="sr-only">Privacy and trust guarantees</h2>
+        <ul class="trust" aria-label="Privacy and trust guarantees">
           <li>No account required</li>
-          <li>Raw logs never leave your machine</li>
-          <li>Never used for training</li>
-          <li>Secrets redacted before upload</li>
+          <li>Raw logs stay local in the public flow <button type="button" class="help-tip" data-tippy-content="The NPX command analyzes supported agent logs on your machine first. SQLite state-store extraction for Cursor, Kiro, and Google Antigravity is read-only, bounded to known conversation keys, and remains local. The upload step sends the generated sanitized report JSON, not raw transcript files or raw state databases." aria-label="More information">?</button></li>
+          <li>Reports are not used for training <button type="button" class="help-tip" data-tippy-content="The service stores sanitized reports for rendering and bounded aggregate analytics. It does not feed uploaded reports into model training." aria-label="More information">?</button></li>
+          <li>Secrets redacted locally before upload <button type="button" class="help-tip" data-tippy-content="The CLI runs deterministic redaction on your computer before writing the report JSON. The hosted service receives category counts and placeholders, not the original redacted values. Redaction is best-effort; users should still review the JSON before upload." aria-label="More information">?</button></li>
         </ul>
+        <p class="disclaimer">The public flow runs analysis on your machine and uploads only the sanitized JSON report you review.</p>
         <p class="trust-links"><a href="/security/">Security</a> <a href="/privacy/">Privacy</a></p>
 
-        <section class="panel" id="launch-panel">
-          <button id="generate-session" type="button">Generate Local Commands</button>
-        </section>
-
-        <section class="panel command-panel" id="session-panel" hidden>
+        <section class="panel command-panel" id="session-panel">
           <p class="status-line" id="session-status" hidden></p>
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">step 1</p>
-              <h2>Analyze locally</h2>
+              <p class="eyebrow">copy / paste</p>
+              <h2>Run the local analyzer</h2>
             </div>
-            <button id="copy-prompt" type="button">Copy Analyze Command</button>
+            <button id="copy-prompt" type="button">Copy NPX Command</button>
           </div>
-          <pre id="claude-prompt"></pre>
+          <pre id="claude-prompt">npx --yes agent-analyzer@latest run</pre>
+          <p class="command-note">Runs on your machine first, asks before upload, and sends only the sanitized report JSON. <button type="button" class="help-tip" data-tippy-content="This command uses the published npm package. It discovers supported local agent logs, parses and redacts locally, writes a report file, asks for confirmation, then uploads only that report JSON." aria-label="More information">?</button></p>
+        </section>
 
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">step 2</p>
-              <h2>Review, then upload sanitized JSON</h2>
-            </div>
-            <button id="copy-command" type="button">Copy Upload Command</button>
+        <section class="trust-stack" aria-labelledby="install-trust-heading">
+          <h2 id="install-trust-heading" class="sr-only">Install trust details</h2>
+          <div class="trust-flow">
+            <h2>What this command does</h2>
+            <ol class="flow-steps">
+              <li><span>1</span>Finds supported local agent logs.</li>
+              <li><span>2</span>Parses metrics and redacts secrets locally.</li>
+              <li><span>3</span>Writes a reviewable report JSON.</li>
+              <li><span>4</span>Asks: "Are you ready to get your report?"</li>
+              <li><span>5</span>Uploads only the sanitized report JSON.</li>
+            </ol>
           </div>
-          <pre id="curl-command"></pre>
+
+          <div class="data-path">
+            <h2>Data path</h2>
+            <div class="path-rail" aria-label="Raw logs to local analyzer to sanitized report to private hosted report">
+              <span>supported agent logs</span>
+              <span>local analyzer</span>
+              <span>sanitized JSON</span>
+              <span>private report link</span>
+            </div>
+            <p>Raw transcripts are not uploaded in the public flow. The hosted page receives the generated report artifact, not your original session files.</p>
+          </div>
+
+          <div class="proof-links">
+            <h2>Verify before running</h2>
+            <a href="https://github.com/Priivacy-ai/agent-log-analyzer" rel="noopener noreferrer">Source on GitHub</a>
+            <a href="https://www.npmjs.com/package/agent-analyzer" rel="noopener noreferrer">npm package</a>
+            <a href="/proof/">Benchmark proof</a>
+            <a href="/proof/methodology.html">Methodology</a>
+            <a href="/proof/results.html">Tool results</a>
+            <a href="/security/">Security model</a>
+            <a href="/privacy/">Privacy terms</a>
+            <a href="https://github.com/Priivacy-ai/agent-log-analyzer/releases" rel="noopener noreferrer">Manual download</a>
+          </div>
+
+          <div class="read-only-note">
+            <h2>Read-only scan</h2>
+            <p>The free scan does not install hooks, change Claude settings, modify repos, or run remediation. It reads logs, writes a local report file, and waits for your upload approval. NPX does not install the analyzer globally.</p>
+            <pre>npm uninstall -g agent-analyzer</pre>
+          </div>
+        </section>
+
+        <section class="outcome-preview" aria-label="Report outcome preview">
+          <div>
+            <p class="eyebrow">outcome preview</p>
+            <h2>One command should end in a concrete profiler report.</h2>
+            <p>The report is designed to show the waste signal, the evidence behind it, the token category involved, and the next remediation step without asking an LLM to read your raw transcript. The goal is simple: spend fewer plan tokens on drift and more on writing software.</p>
+          </div>
+          <div class="preview-frame" aria-hidden="true">
+            <div class="preview-terminal">
+              <span>$ npx --yes agent-analyzer@latest run</span>
+              <span>[====&gt;] reading Claude Code logs</span>
+              <span>[========&gt;] redacting secrets locally</span>
+              <span>Are you ready to get your report?</span>
+            </div>
+            <div class="preview-report">
+              <strong>27</strong>
+              <span>efficiency score</span>
+              <p>36-62% avoidable token spend</p>
+              <div class="preview-bubbles">
+                <i></i><i></i><i></i>
+              </div>
+            </div>
+          </div>
         </section>
       </section>
 
       <section class="report" id="report" hidden>
-        <p class="expiry" id="report-status">This report is visible for 15 minutes.</p>
+        <p class="expiry" id="report-status">This private report link does not expire.</p>
+        <div class="zero-token-banner">
+          <strong>0 model tokens used to generate this report.</strong>
+          <span>Agent Analyzer uses deterministic local parsing and server-side rendering, not an LLM reading your logs.</span>
+        </div>
         <div class="score">
           <span id="score">--</span>
-          <small>efficiency score</small>
+          <small>efficiency score <button type="button" class="help-tip" data-tippy-content="What does this score mean? Efficiency is 100 minus the high end of estimated plugin-addressable token savings. The estimate is deterministic: each finding gets a bounded token-impact estimate and a conservative plugin capture range, then totals are capped at 65%." aria-label="More information">?</button></small>
         </div>
         <div>
-          <h2>Estimated Waste</h2>
+          <h2>Estimated Waste <button type="button" class="help-tip" data-tippy-content="How is waste estimated? This is the estimated token range our generated plugin can plausibly help recover. Repeated-read guardrails, retry-loop stops, tool-output caps, context-boundary guidance, and cache hygiene each have bounded capture rates." aria-label="More information">?</button></h2>
           <p id="waste"></p>
+          <p id="token-volume" class="command-note"></p>
+          <p class="capacity-note">Cutting this waste helps the same coding plan produce more useful implementation work before you run out of tokens.</p>
+          <div class="report-cta-row" aria-label="Report actions">
+            <a class="report-primary-cta" href="#download-report-section">Download report pack</a>
+            <a class="report-secondary-cta" href="#plugin-purchase">Get custom plugin</a>
+          </div>
         </div>
-        <div>
-          <h2>Top Problems</h2>
-          <ol id="findings"></ol>
+        <div class="problem-section">
+          <h2>Top Problems <button type="button" class="help-tip" data-tippy-content="Bubble size is estimated plugin-addressable token savings for that finding. Tool-output and cache issues use token fields when available; rereads, retries, and context spikes use bounded count-scaled estimates multiplied by conservative plugin capture rates." aria-label="More information">?</button></h2>
+          <div id="findings" class="problem-bubbles" role="list" aria-label="Top problems sized by estimated plugin-addressable token savings"></div>
         </div>
-        <div>
-          <h2>Session Timeline</h2>
-          <div id="timeline" class="timeline"></div>
+        <div id="timeline-section">
+          <h2>Session Timeline <button type="button" class="help-tip" data-tippy-content="Timeline points are sampled from parsed log rows, usually every ten rows plus the final row. Token height is estimated context/token volume at that point, not exact provider billing." aria-label="More information">?</button></h2>
+          <p id="timeline-caption" class="timeline-caption">Estimated context/token volume by parsed turn. Green overlay = estimated tokens you can save.</p>
+          <div id="timeline-legend" class="timeline-legend" aria-hidden="true"></div>
+          <div class="timeline-frame">
+            <div class="timeline-y-axis" aria-hidden="true">
+              <span id="timeline-y-max">max</span>
+              <span>0</span>
+            </div>
+            <div id="timeline" class="timeline" aria-describedby="timeline-caption"></div>
+          </div>
+          <div id="timeline-x-axis" class="timeline-x-axis" aria-hidden="true"></div>
         </div>
-        <div>
-          <h2>Suggested Immediate Fixes</h2>
-          <ul id="fixes"></ul>
-        </div>
-        <div>
-          <h2>Ecosystem</h2>
-          <pre id="ecosystem"></pre>
-        </div>
-        <div>
-          <h2>Security Receipt</h2>
-          <pre id="receipt"></pre>
-        </div>
-        <div class="upsell">
-          <h2>Install the optimization pack generated from this analysis</h2>
-          <p>Unlock a waiver-gated paid scan across your 100 most recent Claude Code logs, then install a generated optimization pack built around the practices that survived our repeated benchmark: scoped reads, output-budgeted commands, retry breaks, and conditional reducers only when your report shows the matching waste.</p>
-          <p>The paid scan uses the same local-first model: analyze the 100 most recent Claude Code sessions locally, review the sanitized aggregate, then upload only the generated report JSON. Telemetry-only and negative-result tools are not sold as token savers.</p>
-          <label class="waiver">
-            <input id="waiver-accepted" type="checkbox" />
-            I understand that Claude Analyzer provides deterministic analysis and vetted setup recommendations, but any installation or code change is executed by Claude Code, my package manager, or third-party tools with my approval and at my own risk.
-          </label>
-          <button id="unlock-paid" type="button">Unlock paid scan</button>
-          <pre id="paid-status">paid checkout not started</pre>
-          <pre id="paid-command"></pre>
-          <button id="copy-paid-command" type="button" hidden>Copy Paid Command</button>
+        <section class="plugin-pitch" id="plugin-pitch">
+          <div>
+            <p class="eyebrow">generated remediation</p>
+            <h2>Copy the quick fixes now. Use the plugin to make them stick. <button type="button" class="help-tip" data-tippy-content="Fixes are generated from deterministic finding IDs and bounded evidence, not from raw prompts or an LLM reading your transcript. The plugin packages those findings into Claude-facing operating guidance and vetted setup instructions." aria-label="More information">?</button></h2>
+            <p>Add the relevant AGENTS.md lines now. The custom plugin packages the same report into operating guidance so future sessions spend more of your plan writing software and less on rereads, retries, dead context, and noisy tools. We removed telemetry-only tools and benchmark losers from the token-saving pitch.</p>
+            <ul class="plugin-benefits">
+              <li>Session hygiene nudges.</li>
+              <li>Scoped retrieval guidance.</li>
+              <li>Output-budget rules.</li>
+              <li>MCP and skill bloat cleanup.</li>
+              <li>Conditional reducers only when the report justifies them.</li>
+            </ul>
+            <a class="plugin-cta" href="#plugin-purchase">Get my optimization plugin</a>
+          </div>
+          <div class="plugin-fixes-card">
+            <h3>Copy-ready AGENTS.md lines</h3>
+            <p class="command-note">Use only the lines that match how you work.</p>
+            <ul id="fixes"></ul>
+          </div>
+        </section>
+        <section id="recommendation-section" class="intel-section" hidden>
+          <h2>Recommended tools to address waste <button type="button" class="help-tip" data-tippy-content="Recommendation ranking comes from allowlisted tool metadata and deterministic signals such as tool-output bloat, retrieval friction, usage visibility, and MCP/skill utilization. Unknown private names are not echoed." aria-label="More information">?</button></h2>
+          <p class="section-note">These are not random installs. Recommendations are matched to this report's waste signals and constrained by the benchmark results: visibility tools stay visibility-only, negative-result tools stay out of the default token-saving path, and conditional reducers require matching evidence.</p>
+          <div class="recommendation-cta-row">
+            <a class="plugin-cta" href="#plugin-purchase">Get custom plugin</a>
+            <a class="recommendation-allowlist-link" href="/proof/results.html">Review benchmark results</a>
+          </div>
+          <div id="recommendation-primary"></div>
+          <div id="recommendation-secondary"></div>
+          <p id="recommendation-empty" hidden>No high-priority recommendation detected from current signals.</p>
+        </section>
+
+        <section class="evidence-grid">
+          <div class="evidence-card environment-card">
+            <h2>Environment signals <button type="button" class="help-tip" data-tippy-content="This condenses bounded ecosystem fingerprints, MCP utilization, and skill utilization into the few signals that affect token waste. Unknown/private names are counted without exposing raw names." aria-label="More information">?</button></h2>
+            <div id="environment-signals" class="environment-panel"></div>
+          </div>
+          <div class="evidence-card receipt-card">
+            <h2>Security Receipt <button type="button" class="help-tip" data-tippy-content="The public flow analyzes and redacts locally, then uploads sanitized report JSON. This receipt records the report's own privacy flags and local redaction counts; it is not a third-party audit." aria-label="More information">?</button></h2>
+            <div id="receipt" class="receipt-panel"></div>
+          </div>
+        </section>
+        <div class="upsell" id="download-report-section">
+          <div class="upsell-copy">
+            <p class="eyebrow">portable findings</p>
+            <h2>Download the report pack for free</h2>
+            <p class="upsell-lede">The report pack shows where your agent sessions are burning tokens, includes the benchmark-backed field guide, and explains which tools did and did not reduce spend in our repeated runs. The generated plugin turns your findings into setup rules and workflow nudges so you can get more useful coding work from the same plan.</p>
+            <ul class="upsell-proof">
+              <li>Raw transcripts stay local.</li>
+              <li>No email required for the download.</li>
+              <li>Three-run benchmark data is linked from the proof pages.</li>
+            </ul>
+          </div>
+          <div class="upsell-action" id="plugin-purchase">
+            <p><a id="extended-report-link" class="plugin-cta" href="#">Download report pack</a></p>
+            <p class="command-note">Custom optimization plugin: $10 / €10 target price. Checkout enforcement is not active in this test build; this link generates the plugin from this report.</p>
+            <p><a id="plugin-download-link" class="plugin-cta" href="#">Download custom plugin</a></p>
+          </div>
         </div>
       </section>
     </main>
+    <script src="/vendor/tippy/popper.min.js"></script>
+    <script src="/vendor/tippy/tippy-bundle.umd.min.js"></script>
+    <script src="/tooltips.js"></script>
+    <script src="/report-actions.js"></script>
     <script src="/app.js"></script>
   </body>
 </html>
