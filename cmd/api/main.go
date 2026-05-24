@@ -85,8 +85,22 @@ func buildMux(store app.APIStore) http.Handler {
 	mux.HandleFunc("GET /r/{id}/{token}", reportPageHandler(store))
 	mux.HandleFunc("GET /api/jobs/{id}", getJobHandler(store))
 	mux.HandleFunc("GET /api/admin/usage-stats", usageStatsHandler(store))
-	mux.Handle("/", http.FileServer(http.Dir("web")))
+	mux.Handle("GET /docs/", http.StripPrefix("/docs/", http.FileServer(http.Dir(existingDir("docs", "web/docs", "../../docs")))))
+	mux.Handle("/", http.FileServer(http.Dir(existingDir("web", "../../web"))))
 	return mux
+}
+
+func existingDir(candidates ...string) string {
+	for _, candidate := range candidates {
+		info, err := os.Stat(candidate)
+		if err == nil && info.IsDir() {
+			return candidate
+		}
+	}
+	if len(candidates) > 0 {
+		return candidates[0]
+	}
+	return "."
 }
 
 func healthHandler() http.HandlerFunc {

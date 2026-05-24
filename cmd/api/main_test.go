@@ -935,6 +935,37 @@ func TestHealthRoutes(t *testing.T) {
 	}
 }
 
+func TestBenchmarkProofRoutesAreLinkedAndServed(t *testing.T) {
+	mux := buildMux(fakeStore{})
+	for _, tc := range []struct {
+		path string
+		want string
+	}{
+		{"/", "/proof/"},
+		{"/proof/", "Benchmark Landscape"},
+		{"/proof/methodology.html", "Privacy Boundary"},
+		{"/proof/results.html", "Primary sanitized benchmark recordings"},
+		{"/proof/benchmark-comparison.html", "External Benchmark Comparison"},
+		{"/docs/benchmarks/repeated-benchmark-suite.md", "Repeated Benchmark Suite"},
+		{"/docs/benchmarks/api-cost-translation.md", "API Cost Translation"},
+		{"/docs/benchmarks/primary-data/", "index.json"},
+	} {
+		t.Run(tc.path, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+			rec := httptest.NewRecorder()
+
+			mux.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("%s got status %d: %s", tc.path, rec.Code, rec.Body.String())
+			}
+			if !strings.Contains(rec.Body.String(), tc.want) {
+				t.Fatalf("%s missing %q", tc.path, tc.want)
+			}
+		})
+	}
+}
+
 func TestAnalysisSessionCurlFlow(t *testing.T) {
 	store, err := localstore.New(t.TempDir())
 	if err != nil {

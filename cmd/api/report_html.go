@@ -235,6 +235,7 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
           <div class="recommendation-cta-row">
             <a class="plugin-cta" href="#plugin-purchase">Get custom plugin</a>
             <a class="recommendation-allowlist-link" href="/allowed-tools.html">Review vetted allowlist</a>
+            <a class="recommendation-allowlist-link" href="/proof/results.html">Review benchmark results</a>
           </div>
           {{with .Report.Recommendation.Primary}}{{template "recommendation" .}}{{end}}
           {{with .Report.Recommendation.Secondary}}{{template "recommendation" .}}{{end}}
@@ -261,6 +262,7 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
           <ul class="upsell-proof">
             <li>Raw transcripts stay local.</li>
             <li>No email required for the download.</li>
+            <li><a href="/proof/methodology.html">Benchmark methodology and primary data</a>.</li>
           </ul>
           </div>
           <div class="upsell-action" id="plugin-purchase">
