@@ -21,6 +21,7 @@ Optional:
   BASELINE_CODEX_EXEC_ARGS="$CODEX_EXEC_ARGS"
   OPTIMIZED_CODEX_EXEC_ARGS="$CODEX_EXEC_ARGS"
   QUALITY_COMMAND="go test ./..."
+  BENCHMARK_SETUP_COMMAND="cp -R /path/fixtures .benchmark-fixtures"
   OPTIMIZED_GUIDANCE_FILE=/path/to/guidance.txt
 
 The script creates two isolated git worktrees from the same commit, runs the
@@ -52,6 +53,7 @@ CODEX_EXEC_ARGS="${CODEX_EXEC_ARGS:---ignore-rules --ignore-user-config}"
 BASELINE_CODEX_EXEC_ARGS="${BASELINE_CODEX_EXEC_ARGS:-$CODEX_EXEC_ARGS}"
 OPTIMIZED_CODEX_EXEC_ARGS="${OPTIMIZED_CODEX_EXEC_ARGS:-$CODEX_EXEC_ARGS}"
 QUALITY_COMMAND="${QUALITY_COMMAND:-}"
+BENCHMARK_SETUP_COMMAND="${BENCHMARK_SETUP_COMMAND:-}"
 OPTIMIZED_GUIDANCE_FILE="${OPTIMIZED_GUIDANCE_FILE:-}"
 
 if [[ ! -f "$TASK_PROMPT_FILE" ]]; then
@@ -89,6 +91,10 @@ rm -rf "$BASELINE_WT" "$OPTIMIZED_WT"
 git -C "$SOURCE_REPO" worktree prune
 git -C "$SOURCE_REPO" worktree add --detach "$BASELINE_WT" "$FIXED_COMMIT"
 git -C "$SOURCE_REPO" worktree add --detach "$OPTIMIZED_WT" "$FIXED_COMMIT"
+if [[ -n "$BENCHMARK_SETUP_COMMAND" ]]; then
+  (cd "$BASELINE_WT" && bash -lc "$BENCHMARK_SETUP_COMMAND") >"$OUT_DIR/baseline-setup.stdout.txt" 2>"$OUT_DIR/baseline-setup.stderr.txt"
+  (cd "$OPTIMIZED_WT" && bash -lc "$BENCHMARK_SETUP_COMMAND") >"$OUT_DIR/optimized-common-setup.stdout.txt" 2>"$OUT_DIR/optimized-common-setup.stderr.txt"
+fi
 
 filter_codex_jsonl() {
   local input="$1"

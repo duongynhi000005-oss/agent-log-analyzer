@@ -18,6 +18,7 @@ Optional:
   BASELINE_CLAUDE_ARGS="$CLAUDE_ARGS"
   OPTIMIZED_CLAUDE_ARGS="$CLAUDE_ARGS"
   QUALITY_COMMAND="go test ./..."
+  BENCHMARK_SETUP_COMMAND="cp -R /path/fixtures .benchmark-fixtures"
   OPTIMIZED_GUIDANCE_FILE=/path/to/guidance.txt
   AGENT_PLUGIN_ENABLED=1
   OPTIMIZED_EXTRA_PLUGIN_DIRS=/path/plugin-a:/path/plugin-b
@@ -54,6 +55,7 @@ fi
 BASELINE_CLAUDE_ARGS="${BASELINE_CLAUDE_ARGS:-$CLAUDE_ARGS}"
 OPTIMIZED_CLAUDE_ARGS="${OPTIMIZED_CLAUDE_ARGS:-$CLAUDE_ARGS}"
 QUALITY_COMMAND="${QUALITY_COMMAND:-}"
+BENCHMARK_SETUP_COMMAND="${BENCHMARK_SETUP_COMMAND:-}"
 OPTIMIZED_GUIDANCE_FILE="${OPTIMIZED_GUIDANCE_FILE:-}"
 AGENT_PLUGIN_ENABLED="${AGENT_PLUGIN_ENABLED:-1}"
 OPTIMIZED_EXTRA_PLUGIN_DIRS="${OPTIMIZED_EXTRA_PLUGIN_DIRS:-}"
@@ -118,6 +120,10 @@ rm -rf "$BASELINE_WT" "$OPTIMIZED_WT"
 git -C "$SOURCE_REPO" worktree prune
 git -C "$SOURCE_REPO" worktree add --detach "$BASELINE_WT" "$FIXED_COMMIT"
 git -C "$SOURCE_REPO" worktree add --detach "$OPTIMIZED_WT" "$FIXED_COMMIT"
+if [[ -n "$BENCHMARK_SETUP_COMMAND" ]]; then
+  (cd "$BASELINE_WT" && bash -lc "$BENCHMARK_SETUP_COMMAND") >"$OUT_DIR/baseline-setup.stdout.txt" 2>"$OUT_DIR/baseline-setup.stderr.txt"
+  (cd "$OPTIMIZED_WT" && bash -lc "$BENCHMARK_SETUP_COMMAND") >"$OUT_DIR/optimized-common-setup.stdout.txt" 2>"$OUT_DIR/optimized-common-setup.stderr.txt"
+fi
 if [[ -n "$OPTIMIZED_SETUP_COMMAND" ]]; then
   (cd "$OPTIMIZED_WT" && bash -lc "$OPTIMIZED_SETUP_COMMAND") >"$OUT_DIR/optimized-setup.stdout.txt" 2>"$OUT_DIR/optimized-setup.stderr.txt"
 fi

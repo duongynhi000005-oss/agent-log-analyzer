@@ -50,6 +50,7 @@ source_repo = Path(os.environ.get("SOURCE_REPO", target["source_repo_default"]))
 repeats = os.environ.get("REPEATS", str(suite.get("default_repeats", 3)))
 base_ref = os.environ.get("BASE_REF", target["fixed_commit"])
 quality_command = os.environ.get("QUALITY_COMMAND", target["quality_command"])
+setup_command = target.get("setup_command", "")
 task_prompt_file = analyzer_repo / target["task_prompt_file"]
 repeat_script = analyzer_repo / "scripts" / "benchmark-repeat.sh"
 out_root.mkdir(parents=True, exist_ok=True)
@@ -114,6 +115,8 @@ for entry in suite["suites"]:
         "REPEATS": repeats,
         "OUT_DIR": str(suite_out),
     })
+    if setup_command:
+        env["BENCHMARK_SETUP_COMMAND"] = setup_command
     if entry.get("guidance_file"):
         env["OPTIMIZED_GUIDANCE_FILE"] = resolve(entry["guidance_file"])
     if entry.get("pre_task_prompt_file"):
