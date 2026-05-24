@@ -178,6 +178,31 @@ func baseFiles(report analyzer.Report, pluginName string, recommendations []Tool
 			Content: toolingCommand(recommendations),
 		},
 		{
+			Path:    "commands/agent-analyzer-proof.md",
+			Mode:    "0644",
+			Content: proofCommand(report),
+		},
+		{
+			Path:    "commands/agent-analyzer-review.md",
+			Mode:    "0644",
+			Content: reviewCommand(report),
+		},
+		{
+			Path:    "commands/agent-analyzer-status.md",
+			Mode:    "0644",
+			Content: statusCommand(report),
+		},
+		{
+			Path:    "commands/agent-analyzer-tooling.md",
+			Mode:    "0644",
+			Content: toolingCommand(recommendations),
+		},
+		{
+			Path:    "agents/token-hygiene-reviewer.md",
+			Mode:    "0644",
+			Content: tokenHygieneReviewerAgent(report),
+		},
+		{
 			Path:    "skills/codebase-navigation/SKILL.md",
 			Mode:    "0644",
 			Content: codebaseNavigationSkill(report),
@@ -263,7 +288,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 	add(ToolRecommendation{
 		ID:             "ccusage",
 		Category:       "metrics_telemetry",
-		Why:            "Parse local Claude Code JSONL logs for independent token, cost, and burn-rate visibility before and after optimization.",
+		Why:            "Telemetry only: parse local Claude Code JSONL logs for independent input, output, cache, cost, and burn-rate visibility before and after optimization; do not treat it as a direct token reducer.",
 		InstallCommand: "npx ccusage@latest",
 		Source:         "https://github.com/ryoppippi/ccusage",
 	})
@@ -279,15 +304,15 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 		add(ToolRecommendation{
 			ID:             "context-mode",
 			Category:       "context_defense",
-			Why:            "Route large tool outputs through sandboxed processing and summaries instead of flooding Claude's live context.",
+			Why:            "Targets tool-output/input-context tokens: route large tool outputs through sandboxed processing and summaries instead of flooding Claude's live context. Does not directly reduce visible output or reasoning tokens.",
 			InstallCommand: "/plugin marketplace add mksglu/context-mode\n/plugin install context-mode@context-mode\n/reload-plugins\n/context-mode:ctx-doctor",
 			Source:         "https://github.com/mksglu/context-mode",
 		})
 		add(ToolRecommendation{
 			ID:                "rtk",
 			Category:          "advanced_shell_compression",
-			Why:               "Compress common shell command output before it reaches Claude; useful when terminal output is a dominant waste source.",
-			InstallCommand:    "brew install rtk\nrtk init -g",
+			Why:               "Targets tool-output/input-context tokens: compress noisy shell output before it reaches Claude. It does not directly reduce visible output or reasoning tokens; benchmark explicit commands such as `rtk go test` before enabling global hooks.",
+			InstallCommand:    "brew install rtk\n# Start with explicit commands such as: rtk go test ./...\n# Enable hooks with `rtk init -g` only after reviewing the waiver and confirming shell rewriting is acceptable.",
 			RequiredBinary:    "rtk",
 			BinaryInstallHint: "macOS: brew install rtk. Linux/macOS fallback: curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh",
 			Source:            "https://github.com/rtk-ai/rtk",
@@ -295,7 +320,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 		add(ToolRecommendation{
 			ID:             "claude-token-efficient",
 			Category:       "claude_md_optimization",
-			Why:            "Reduce accumulated assistant verbosity, but only merge the smallest useful rules because persistent CLAUDE.md text adds input tokens.",
+			Why:            "Targets visible output tokens and future assistant verbosity, not tool-output or reasoning tokens. Only merge the smallest useful rules because persistent CLAUDE.md text adds input/context tokens.",
 			InstallCommand: "Ask Claude to review https://github.com/drona23/claude-token-efficient and propose a minimal CLAUDE.md diff; do not overwrite existing CLAUDE.md automatically.",
 			Source:         "https://github.com/drona23/claude-token-efficient",
 		})
@@ -305,7 +330,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 		add(ToolRecommendation{
 			ID:                "grepai",
 			Category:          "local_semantic_retrieval",
-			Why:               "Use local semantic code search and call graphs to reduce repeated grep/read loops without sending code to a hosted retrieval service.",
+			Why:               "Targets input/context and tool-output tokens by replacing repeated grep/read loops with compact local retrieval. It does not directly reduce visible output or reasoning tokens.",
 			InstallCommand:    "brew install yoanbernabeu/tap/grepai\ngrepai init\ngrepai watch",
 			RequiredBinary:    "grepai",
 			BinaryInstallHint: "Requires an embedding provider such as Ollama; install with curl script only after reviewing the GitHub source.",
@@ -314,7 +339,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 		add(ToolRecommendation{
 			ID:             "claude-context",
 			Category:       "semantic_retrieval_mcp",
-			Why:            "Add MCP semantic code retrieval for large repositories where brute-force file exploration causes repeated rereads.",
+			Why:            "Targets input/context tokens by adding MCP semantic code retrieval for large repositories where brute-force file exploration causes repeated rereads. It must amortize indexing/MCP overhead and does not directly reduce output or reasoning tokens.",
 			InstallCommand: "claude mcp add claude-context -e OPENAI_API_KEY=<openai-key> -e MILVUS_ADDRESS=<zilliz-endpoint> -e MILVUS_TOKEN=<zilliz-token> -- npx @zilliz/claude-context-mcp@latest",
 			Source:         "https://github.com/zilliztech/claude-context",
 		})
@@ -334,7 +359,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 		add(ToolRecommendation{
 			ID:                "ccstatusline",
 			Category:          "statusline_telemetry",
-			Why:               "Expose session state in the statusline so users notice cost, git state, and workflow drift without adding messages to context.",
+			Why:               "Telemetry only: expose session state in the statusline so users notice cost, git state, and workflow drift without adding messages to context. It is not a direct reducer of input, output, tool-output, or reasoning tokens.",
 			InstallCommand:    "Review https://github.com/sirmalloc/ccstatusline and install only if it does not conflict with Context Mode or the user's existing statusline.",
 			RequiredBinary:    "ccstatusline",
 			BinaryInstallHint: "Prefer the repository's current release/install instructions over copied commands.",
@@ -345,7 +370,7 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 	add(ToolRecommendation{
 		ID:                "claude-code-usage-monitor",
 		Category:          "burn_rate_monitoring",
-		Why:               "Optional live forecasting for users who care about session limits and burn-rate warnings outside Claude's context.",
+		Why:               "Telemetry only: optional live forecasting for users who care about session limits and burn-rate warnings outside Claude's context. It measures usage but does not directly reduce any token category.",
 		InstallCommand:    "uv tool install claude-monitor\nclaude-monitor",
 		RequiredBinary:    "claude-monitor",
 		BinaryInstallHint: "Alternative: pip install claude-monitor.",
@@ -598,6 +623,8 @@ Generated from deterministic Claude Analyzer metrics.
 - Unknown private ecosystem names included: no
 
 Use the included skills and commands to make the codebase easier for Claude Code to navigate: lean CLAUDE.md layers, scoped skills, official code-intelligence plugins, and vetted MCP integrations. This plugin does not nag on Bash commands.
+
+Start with /agent-analyzer-status, /agent-analyzer-review, and /agent-analyzer-tooling. For benchmark or proof work, run /agent-analyzer-proof before claiming savings.
 `, report.AggregateEvent.ScoreBucket, report.AggregateEvent.WasteBucket)
 }
 
@@ -740,6 +767,91 @@ CTX discipline: watch | findings: %s | action: compact after pivots, cap shell o
 `, findings)
 }
 
+func reviewCommand(report analyzer.Report) string {
+	findings := strings.Join(sourceSummary(report).FindingIDs, ", ")
+	if findings == "" {
+		findings = "baseline-hygiene"
+	}
+	return fmt.Sprintf(`---
+description: Review the current Claude Code session for avoidable token waste before continuing.
+---
+
+# Agent Analyzer Review
+
+Use the token-hygiene-reviewer agent if available. Keep the review short and evidence-based.
+
+Checklist:
+
+1. Name the dominant generated finding set: %s.
+2. Identify any current repeated file reads, noisy tool output, retry loops, or context-growth pivots.
+3. Recommend one next action that preserves task quality while reducing avoidable context.
+4. If optional tools are suggested, route to /agent-analyzer-tooling and ask before installing anything.
+
+Do not claim token savings from this session unless a before/after benchmark has been measured by Claude Analyzer.
+`, findings)
+}
+
+func proofCommand(report analyzer.Report) string {
+	return fmt.Sprintf(`---
+description: Explain what proof is required before claiming the plugin reduces token waste.
+---
+
+# Agent Analyzer Proof
+
+This plugin was generated from a sanitized Claude Analyzer report. It can recommend better session hygiene and vetted tools, but savings claims require a controlled before/after benchmark.
+
+Do not claim token savings until Claude Analyzer has measured both baseline and optimized logs. Name the token category: input/context, tool-output, visible output, cached input, telemetry-only, or reasoning tokens when the harness exposes reasoning usage.
+
+Current generated evidence:
+
+- Efficiency score bucket: %s
+- Waste bucket: %s
+- Raw transcript included in plugin: no
+- Unknown private ecosystem names included in plugin: no
+
+Before making a public claim:
+
+1. Use the same task prompt and same starting commit for baseline and optimized Claude Code -p runs.
+2. Analyze both logs with Claude Analyzer.
+3. Compare total estimated tokens, input/context movement where available, visible output tokens where available, reasoning tokens where available, cached input where available, avoidable waste range, rereads, noisy tool output, retry loops, context-growth spikes, and task quality.
+4. Translate token deltas to cost only with the published rate card for the exact model and token category. Keep API-rate estimates separate from Claude Code or Codex native billing.
+5. Publish only sanitized reports and methodology.
+6. Explain a null result honestly if the optimized run does not improve measured waste, or if an output-only reduction is offset by higher context, reasoning, or published API cost.
+`, report.AggregateEvent.ScoreBucket, report.AggregateEvent.WasteBucket)
+}
+
+func tokenHygieneReviewerAgent(report analyzer.Report) string {
+	findings := strings.Join(sourceSummary(report).FindingIDs, ", ")
+	if findings == "" {
+		findings = "baseline-hygiene"
+	}
+	return fmt.Sprintf(`---
+name: token-hygiene-reviewer
+description: Reviews Claude Code plans and session traces for avoidable token waste while preserving task quality.
+---
+
+You are a token-hygiene reviewer for Claude Code sessions.
+
+Generated Claude Analyzer finding set: %s.
+
+Review rules:
+
+1. Prioritize task completion quality over token reduction.
+2. Call out repeated reads, large unbounded command output, retry loops, and context pivots with concrete evidence.
+3. Recommend the smallest workflow change that reduces avoidable context.
+4. Prefer built-in shell discipline, targeted reads, and official code-intelligence plugins before third-party tools.
+5. Distinguish input/context, tool-output, visible output, cached input, telemetry-only, and reasoning-token effects. Terse prose is not proof of lower full-session cost.
+6. Do not install software or edit project files.
+7. Do not claim savings unless Claude Analyzer measured both baseline and optimized logs.
+
+Return:
+
+- quality risk
+- avoidable-waste risk
+- one recommended next action
+`, findings)
+}
+
 func sessionHygieneSkill(report analyzer.Report) string {
 	return fmt.Sprintf(`---
 description: Use when a Claude Code session changes task type, grows context quickly, or needs a compact/clear decision.
@@ -772,10 +884,12 @@ description: Use when Claude Code is repeatedly reading the same files or runnin
 When inspecting code:
 
 1. Prefer rg and targeted symbol/file searches before broad reads.
-2. Read the narrowest range that can answer the question.
-3. After reading a file, keep a short file-state summary before deciding to reread it.
-4. If the same file appears again, state what new fact is needed before reading.
-5. Avoid dumping entire files unless the file is small and central to the task.
+2. Do not use Glob, find, tree, or broad directory listing when failing tests or exact terms already identify candidate paths.
+3. If a package path is known, inspect that package directly instead of discovering the whole repository.
+4. Read the narrowest range that can answer the question.
+5. After reading a file, keep a short file-state summary before deciding to reread it.
+6. If the same file appears again, state what new fact is needed before reading.
+7. Avoid dumping entire files unless the file is small and central to the task.
 `
 }
 
@@ -789,10 +903,13 @@ description: Use when shell, test, grep, build, or tool output may become large.
 Before running commands likely to print large output:
 
 1. Prefer quiet flags, focused tests, and specific paths.
-2. Pipe noisy commands through tail, head, rg, jq, or sed -n with a clear bound.
-3. Capture full logs to a file only when needed, then inspect focused excerpts.
-4. Never paste unbounded command output into context.
-5. For repeated failing tests, stop after the second similar failure and inspect the invariant.
+2. Run the narrowest relevant test target while debugging, then run the full suite once at the end.
+3. For Go projects, start with package-scoped tests such as: go test ./internal/foo ./internal/bar.
+4. For final Go verification, prefer: go test ./... >/tmp/go-test.log && echo "go test ./... passed" || { grep -A3 -B2 -E "FAIL|--- FAIL" /tmp/go-test.log; exit 1; }.
+5. Pipe noisy commands through tail, head, rg, jq, or sed -n with a clear bound.
+6. Capture full logs to a file only when needed, then inspect focused excerpts.
+7. Never paste unbounded command output into context.
+8. For repeated failing tests, stop after the second similar failure and inspect the invariant.
 `
 }
 

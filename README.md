@@ -24,6 +24,7 @@ There is intentionally no browser upload form. Claude Code logs live under `~/.c
 Legacy raw-log token upload endpoints still exist for internal Docker smoke coverage while the paid scan is moved to the same local-first model. They are not the public onboarding path.
 
 Paid delivery contract: [docs/remediation/plugin-artifacts.md](docs/remediation/plugin-artifacts.md).
+Plugin savings benchmark runbook: [docs/benchmarks/claude-p-plugin-token-savings.md](docs/benchmarks/claude-p-plugin-token-savings.md).
 
 ## Local Runthrough
 

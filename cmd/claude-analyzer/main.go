@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/robertdouglass/claude-log-analyzer/internal/analyzer"
+	"github.com/robertdouglass/claude-log-analyzer/internal/remediation"
 )
 
 const defaultBaseURL = "https://claude-code.spec-kitty.ai"
@@ -34,6 +35,8 @@ func run(args []string) error {
 	switch args[0] {
 	case "analyze":
 		return runAnalyze(args[1:])
+	case "plugin":
+		return runPlugin(args[1:])
 	case "upload":
 		return runUpload(args[1:])
 	default:
@@ -82,6 +85,42 @@ func runAnalyze(args []string) error {
 	fmt.Println()
 	fmt.Printf("Review before upload: jq . %s\n", shellQuote(*out))
 	fmt.Printf("Upload sanitized report: claude-analyzer upload %s\n", shellQuote(*out))
+	return nil
+}
+
+func runPlugin(args []string) error {
+	fs := flag.NewFlagSet("plugin", flag.ContinueOnError)
+	reportPath := fs.String("report", "claude-analyzer-report.json", "sanitized analyzer report JSON")
+	out := fs.String("out", "claude-analyzer-optimization.zip", "path to write Claude Code plugin zip")
+	artifactURL := fs.String("artifact-url", "", "optional short-lived artifact URL to embed in install instructions")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() != 0 {
+		return errors.New("usage: claude-analyzer plugin [--report sanitized-report.json] [--out plugin.zip]")
+	}
+	data, err := os.ReadFile(*reportPath)
+	if err != nil {
+		return err
+	}
+	var report analyzer.Report
+	if err := json.Unmarshal(data, &report); err != nil {
+		return fmt.Errorf("report is not valid analyzer JSON: %w", err)
+	}
+	if report.SecurityReceipt.RawTranscriptSentToLLM {
+		return errors.New("refusing to generate plugin from a report that claims raw transcript was sent to an LLM")
+	}
+	artifact := remediation.Generate(report, remediation.Options{ArtifactURL: *artifactURL})
+	var buffer bytes.Buffer
+	if err := remediation.WriteZip(&buffer, artifact); err != nil {
+		return err
+	}
+	if err := os.WriteFile(*out, buffer.Bytes(), 0o600); err != nil {
+		return err
+	}
+	fmt.Printf("Generated plugin: %s (%d bytes)\n", *out, buffer.Len())
+	fmt.Printf("Load for one Claude Code session: claude --plugin-dir %s\n", shellQuote(*out))
+	fmt.Println("Review WAIVER.md and /agent-analyzer-tooling before installing optional tools.")
 	return nil
 }
 
@@ -181,5 +220,6 @@ func shellQuote(value string) string {
 func usage() {
 	fmt.Fprintln(os.Stderr, "usage:")
 	fmt.Fprintln(os.Stderr, "  claude-analyzer analyze [--log path] [--out claude-analyzer-report.json]")
+	fmt.Fprintln(os.Stderr, "  claude-analyzer plugin [--report claude-analyzer-report.json] [--out claude-analyzer-optimization.zip]")
 	fmt.Fprintln(os.Stderr, "  claude-analyzer upload <sanitized-report.json> [--base-url https://claude-code.spec-kitty.ai]")
 }

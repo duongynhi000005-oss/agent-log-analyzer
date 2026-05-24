@@ -72,16 +72,18 @@ Initial allowlist is maintained in `docs/remediation/token-saving-tooling-matrix
 Generated recommendations now include two classes:
 
 - official Claude Code marketplace/code-intelligence recommendations
-- GitHub-hosted open-source token-saving tools that are waiver-gated and mapped to analyzer signals
+- GitHub-hosted open-source token-saving or telemetry tools that are waiver-gated, mapped to analyzer signals, and labeled by token category
 
 Core open-source recommendations:
 
-- `context-mode` for context defense and large tool-output compression
-- `ccusage` for independent usage analysis and before/after telemetry
-- `grepai` and `claude-context` for repeated-reread/retrieval problems
-- `claude-token-efficient` as a minimal CLAUDE.md diff, never an overwrite
-- `ccstatusline` and Claude Code Usage Monitor as out-of-context awareness tools
-- `rtk` only as an advanced shell-compression option because it rewrites shell command execution
+- `context-mode` for tool-output/input-context defense; not a direct output-token or reasoning-token reducer
+- `ccusage` for independent usage analysis and before/after telemetry; not a direct reducer
+- `grepai` and `claude-context` for repeated-reread/retrieval problems that target input/context tokens only when they replace broad reads
+- `claude-token-efficient` as a minimal output-verbosity diff, never an overwrite, because persistent CLAUDE.md text adds input/context tokens
+- `ccstatusline` and Claude Code Usage Monitor as out-of-context awareness tools; telemetry only
+- `rtk` only as an advanced tool-output/input-context compression option because it rewrites shell command execution
+
+Generated copy must not blur output tokens and reasoning tokens. Output tokens are visible assistant text/tool calls. Reasoning tokens are hidden model work reported by some harnesses and should only be claimed when measured. Terse-response tools can reduce output tokens while still increasing full-session cost.
 
 Official Claude Code plugin allowlist:
 
