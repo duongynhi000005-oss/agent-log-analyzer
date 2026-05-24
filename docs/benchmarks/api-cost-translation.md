@@ -62,6 +62,7 @@ All rows are means across three fresh baseline/optimized pairs.
 | --- | --- | ---: | ---: | ---: | --- |
 | Agent Analyzer guided | Claude Sonnet 4.6 | `$0.246837` | `$0.187629` | `-$0.059207` | Claude Code native `-$0.044219` |
 | claude-context limit 3 | Claude Sonnet 4.6 | `$0.222950` | `$0.280989` | `+$0.058038` | Claude Code native `+$0.048434` |
+| claude-rlm discovery | Claude Sonnet 4.6 | n/a | n/a | n/a | root-session-only native `-$0.075322`; optimized sub-agent usage not exposed in root stdout |
 | context-mode batch | Claude Sonnet 4.6 | `$0.255157` | `$0.202981` | `-$0.052175` | Claude Code native `-$0.036390` |
 | grepai path-constrained | Claude Sonnet 4.6 | `$0.259462` | `$0.221805` | `-$0.037657` | Claude Code native `-$0.017598` |
 | claude-token-efficient | Claude Sonnet 4.6 | `$0.230198` | `$0.225991` | `-$0.004208` | Claude Code native `-$0.003828` |
@@ -83,3 +84,5 @@ Cost claims must name both the token category and the pricing surface:
 - "Reduced Claude Code/Codex cost" requires native harness billing/credit evidence.
 
 Do not collapse those into one generic savings claim.
+
+For multi-session tools such as claude-rlm, do not publish root stdout usage as full cost. The analyzer can aggregate root and sub-agent logs for estimated/tool-output metrics, but Claude Code `-p` stdout only exposes the root session's native usage fields in this harness.

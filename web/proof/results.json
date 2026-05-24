@@ -62,7 +62,10 @@
     "claude_context_repeated_tool_output_delta_mean": 4169.666666666667,
     "claude_context_repeated_published_api_cost_delta_mean_usd": 0.0580381,
     "semble_repeated_estimated_token_delta_mean": -16300.666666666666,
-    "semble_repeated_tool_output_delta_mean": -16060.333333333334
+    "semble_repeated_tool_output_delta_mean": -16060.333333333334,
+    "claude_rlm_discovery_estimated_token_delta_mean": 19476.666666666668,
+    "claude_rlm_discovery_tool_output_delta_mean": 6020.333333333333,
+    "claude_rlm_discovery_root_native_cost_delta_mean_usd": -0.07532203333333334
   },
   "recommendation_trials": [
     {
@@ -303,6 +306,25 @@
       "published_api_cost_model": "claude-sonnet-4-6",
       "replication_status": "repeated_ab",
       "aggregate_artifact": "reports/aggregate-squeez.json"
+    },
+    {
+      "recommendation": "claude-rlm",
+      "source": "https://github.com/Tenobrus/claude-rlm",
+      "evidence_type": "repeated_ab_recursive_subagent_discovery",
+      "primary_token_category": "high_context_recursive_decomposition",
+      "does_not_directly_reduce": [
+        "output_tokens",
+        "reasoning_tokens"
+      ],
+      "quality": "passed in 3/3 repeats",
+      "estimated_token_delta": 19477,
+      "tool_output_token_delta": 6020,
+      "cost_delta_usd": -0.075322,
+      "published_api_cost_delta_usd": null,
+      "observed_result": "Repeated medium-context runs passed quality but increased estimated tokens, tool-output tokens, avoidable waste, and failed commands. Optimized runs used two Claude sessions per repeat, so root stdout cost is not a full cost surface.",
+      "verdict": "negative_on_medium_context_fixture",
+      "replication_status": "repeated_ab",
+      "aggregate_artifact": "reports/aggregate-claude-rlm-discovery.json"
     }
   ],
   "representative_trials": [
@@ -435,6 +457,12 @@
       "source": "https://github.com/JuliusBrussee/caveman",
       "verdict": "harness-specific mixed",
       "product_action": "Keep out of default Claude plugin guidance; document that Codex benefited here while Claude Code got worse."
+    },
+    {
+      "recommendation": "claude-rlm",
+      "source": "https://github.com/Tenobrus/claude-rlm",
+      "verdict": "negative on current medium-context fixture",
+      "product_action": "Do not recommend from this benchmark; add a true high-context benchmark before judging its intended use case."
     }
   ],
   "artifacts": {
@@ -593,7 +621,7 @@
     "fresh_context_required": true,
     "runner": "scripts/benchmark-repeat.sh",
     "status_note": "All named tool recommendations in the proof suite now have at least three fresh baseline/optimized pairs with passing quality gates. Strong claims still remain scoped to the tested fixture, harness, and token category.",
-    "published_aggregate_count": 12
+    "published_aggregate_count": 13
   },
   "repeated_suite_artifacts": {
     "agent-analyzer-guided-v3": {
@@ -643,6 +671,18 @@
       "codex_uncached_plus_output_delta_mean": null,
       "codex_reasoning_delta_mean": null,
       "published_api_cost_delta_mean": 0.0580381
+    },
+    "claude-rlm-discovery": {
+      "artifact": "reports/aggregate-claude-rlm-discovery.json",
+      "quality_passed": true,
+      "completed_repeats": 3,
+      "required_repeats": 3,
+      "estimated_token_delta_mean": 19476.666666666668,
+      "tool_output_token_delta_mean": 6020.333333333333,
+      "native_cost_delta_mean": -0.07532203333333334,
+      "codex_uncached_plus_output_delta_mean": null,
+      "codex_reasoning_delta_mean": null,
+      "published_api_cost_delta_mean": null
     },
     "claude-token-efficient": {
       "artifact": "reports/aggregate-claude-token-efficient.json",

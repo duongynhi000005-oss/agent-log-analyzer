@@ -83,6 +83,7 @@ All rows below passed the quality gate in all three repeats.
 | --- | --- | ---: | ---: | --- | --- | --- |
 | Agent Analyzer guided | Claude Code | `-12,370` | `-12,698` | Claude output `-504` | native `-$0.044219`; API estimate `-$0.059207` | Positive |
 | claude-context limit 3 | Claude Code | `+7,327` | `+4,170` | Claude output `+1,169` | native `+$0.048434`; API estimate `+$0.058038` | Negative here |
+| claude-rlm discovery | Claude Code | `+19,477` | `+6,020` | Claude root output `-1,197`; optimized side used 2 sessions per repeat | root-session cost `-$0.075322`; full sub-agent cost not exposed | Negative here |
 | context-mode batch | Claude Code | `-12,359` | `-13,257` | Claude output `+170` | native `-$0.036390`; API estimate `-$0.052175` | Conditional |
 | grepai path-constrained | Claude Code | `-14,567` | `-15,571` | Claude output `+443` | native `-$0.017598`; API estimate `-$0.037657` | Conditional |
 | claude-token-efficient | Claude Code | `-391` | `-754` | Claude output `-79` | native `-$0.003828`; API estimate `-$0.004208` | Modest |
@@ -95,6 +96,8 @@ All rows below passed the quality gate in all three repeats.
 | Caveman | Codex | `-9,210` | `-9,109` | output `-172`; reasoning `-2`; uncached+output `-4,739` | API estimate `-$0.033986` | Harness-specific |
 
 ccusage and ccstatusline are telemetry-only recommendations. They are useful for cost/context awareness, but they are not task interventions and are not represented as direct token reducers.
+
+claude-rlm is included as a fit test, not as a true high-context proof. The skill targets very long contexts and recursive decomposition. On this medium-context owner-breakdown fixture it passed quality, but the extra RLM sub-agent increased analyzer-estimated tokens, tool output, and failed commands. The root Claude stdout cost fields exclude sub-agent usage, so the root-session cost reduction is not a full cost claim.
 
 ## Public Artifacts
 

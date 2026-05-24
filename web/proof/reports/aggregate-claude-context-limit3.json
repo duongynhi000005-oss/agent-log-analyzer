@@ -103,6 +103,8 @@
   ],
   "published_api_cost_estimate": {
     "harness": "claude",
+    "complete_cost_surface": true,
+    "multi_session_runs_not_in_stdout_usage": [],
     "rates": {
       "model_assumption": "Claude Sonnet 4.6",
       "input_tokens_per_mtok_usd": 3.0,

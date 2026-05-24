@@ -71,6 +71,16 @@
               <td><span class="verdict bad">Negative here</span></td>
             </tr>
             <tr>
+              <td><a class="text-link" href="https://github.com/Tenobrus/claude-rlm">claude-rlm</a></td>
+              <td>Recursive sub-agent decomposition</td>
+              <td>3/3</td>
+              <td class="delta-bad">+19,477</td>
+              <td class="delta-bad">+6,020</td>
+              <td class="delta-good">Claude root output -1,197</td>
+              <td>root-session only; sub-agent cost not exposed</td>
+              <td><span class="verdict bad">Negative here</span></td>
+            </tr>
+            <tr>
               <td><a class="text-link" href="https://github.com/mksglu/context-mode">context-mode</a></td>
               <td>Tool-output/input-context batching</td>
               <td>3/3</td>
@@ -221,6 +231,7 @@
           <li><strong>Recommend tools by category:</strong> RTK and Squeez are shell-output tools; grepai, Semble, context-mode, and claude-context are context/retrieval tools; claude-token-efficient is a small output-verbosity tool.</li>
           <li><strong>Do not recommend telemetry as a reducer:</strong> ccusage and ccstatusline help users see spend and context pressure, but they do not directly reduce input, output, tool-output, or reasoning tokens.</li>
           <li><strong>Downgrade claude-context on this fixture:</strong> it was functional, but indexing/MCP overhead did not amortize in three fresh runs.</li>
+          <li><strong>Do not use RLM as proof for this fixture:</strong> claude-rlm is designed for truly long contexts, and on this medium-context task its sub-agent decomposition added analyzer-estimated tokens, tool output, and failed commands.</li>
           <li><strong>Keep negative and mixed evidence visible:</strong> Probe reduced tool-output slightly but increased total/cost; Caveman helped Codex in this fixture but made Claude Code workflow tokens worse.</li>
         </ul>
       </section>
@@ -232,6 +243,7 @@
           <li><a class="text-link" href="reports/aggregate-agent-analyzer-guided-v3.json">Agent Analyzer 3x aggregate</a></li>
           <li><a class="text-link" href="reports/aggregate-codex-guided.json">Codex guidance 3x aggregate</a></li>
           <li><a class="text-link" href="reports/aggregate-claude-context-limit3.json">claude-context 3x aggregate</a></li>
+          <li><a class="text-link" href="reports/aggregate-claude-rlm-discovery.json">claude-rlm 3x aggregate</a></li>
           <li><a class="text-link" href="reports/aggregate-context-mode-batch.json">context-mode 3x aggregate</a></li>
           <li><a class="text-link" href="reports/aggregate-grepai-path-constrained.json">grepai 3x aggregate</a></li>
           <li><a class="text-link" href="reports/aggregate-rtk-explicit.json">RTK 3x aggregate</a></li>
