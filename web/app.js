@@ -47,7 +47,7 @@ unlockPaidButton?.addEventListener("click", async () => {
     paidCommand.textContent = session.prompt;
     copyPaidCommandButton.hidden = false;
     paidStatus.textContent =
-      `paid token expires ${new Date(session.expires_at).toLocaleTimeString()} - review this legacy command before running it`;
+      `paid token expires ${new Date(session.expires_at).toLocaleTimeString()} - review the local-first scan command before running it`;
     pollPaidJob(session.job_id, session.report_path);
   } catch (error) {
     paidStatus.textContent = `could not unlock paid scan: ${error.message}`;
@@ -172,7 +172,9 @@ function renderReport(report) {
   document.querySelector("#report-status").textContent = "This report is visible for 15 minutes.";
   document.querySelector("#score").textContent = report.score;
   document.querySelector("#waste").textContent =
-    `${report.estimated_waste_pct.low}-${report.estimated_waste_pct.high}% avoidable token spend`;
+    `${report.estimated_waste_pct.low}-${report.estimated_waste_pct.high}% avoidable token spend detected in this session. Our repeated Agent Analyzer benchmark cut published API-rate cost by 24.0%; on $5,000/month of comparable Claude Sonnet coding usage, that scales to about $1,199/month.`;
+  document.querySelector("#waste").title =
+    "Scale basis: three fresh noisy-repo Claude Code pairs, baseline $0.2468368, optimized $0.1876295, delta -$0.0592073, savings 23.986%. Scaled examples assume similar token mix and quality requirements.";
 
   const findings = document.querySelector("#findings");
   findings.innerHTML = "";
@@ -260,7 +262,7 @@ function renderPaidCommandPreview(report) {
       'claude --plugin-dir "$PLUGIN_ZIP"',
     ].join("\n");
     target.textContent =
-      "Install the generated Claude Analyzer optimization plugin for this session. Run the command below, explain what it installs, summarize the waiver, and ask for approval before executing it. Do not print plugin archive contents.\n\n```sh\n" +
+      "Install the generated Claude Analyzer optimization plugin for this session. Explain that it contains benchmark-backed workflow guidance and only conditional reducers that survived repeated runs. Summarize the waiver and ask for approval before executing it. Do not print plugin archive contents.\n\n```sh\n" +
       command +
       "\n```";
     if (paidStatus) paidStatus.textContent = "optimization plugin ready; artifact URL expires with this report";
@@ -270,11 +272,11 @@ function renderPaidCommandPreview(report) {
     const upsellCopy = document.querySelectorAll(".upsell p");
     if (upsellCopy[0]) {
       upsellCopy[0].textContent =
-        "Your paid bundle scan is complete. The optimization plugin below is generated from sanitized aggregate findings and vetted tooling recommendations.";
+        "Your paid bundle scan is complete. The optimization plugin below is generated from sanitized aggregate findings and the narrowed benchmark allowlist: Agent Analyzer workflow first, conditional reducers second, no telemetry-only or negative-result tools sold as savers.";
     }
     if (upsellCopy[1]) {
       upsellCopy[1].textContent =
-        "Review the install command with Claude Code. Claude should summarize the waiver and ask before running it.";
+        "Review the install command with Claude Code. Claude should summarize the waiver, name the measured findings it is addressing, and ask before running anything.";
     }
     return;
   }

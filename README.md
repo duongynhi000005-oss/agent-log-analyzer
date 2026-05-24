@@ -1,6 +1,6 @@
 # Claude Log Analyzer
 
-Deterministic performance profiler for AI coding workflows.
+Deterministic performance profiler for AI coding workflows. The product path is analysis first, download second: users measure their own Claude Code waste locally, then install a generated optimization pack only when the evidence supports it.
 
 This repo starts with a Docker-local, end-to-end implementation:
 
@@ -9,6 +9,7 @@ This repo starts with a Docker-local, end-to-end implementation:
 - upload only the sanitized report JSON
 - detect waste patterns and ecosystem fingerprints
 - generate an ephemeral report JSON
+- generate a waiver-gated optimization plugin from the paid aggregate report
 - view the report in a static local web UI
 
 The production target is CDN + local deterministic CLI + report-only upload + short-lived report storage. Local development intentionally avoids cloud dependencies so the complete flow can be tested before any infrastructure is provisioned.
@@ -24,7 +25,13 @@ There is intentionally no browser upload form. Claude Code logs live under `~/.c
 Legacy raw-log token upload endpoints still exist for internal Docker smoke coverage while the paid scan is moved to the same local-first model. They are not the public onboarding path.
 
 Paid delivery contract: [docs/remediation/plugin-artifacts.md](docs/remediation/plugin-artifacts.md).
-Plugin savings benchmark runbook: [docs/benchmarks/claude-p-plugin-token-savings.md](docs/benchmarks/claude-p-plugin-token-savings.md).
+Repeated benchmark suite: [docs/benchmarks/repeated-benchmark-suite.md](docs/benchmarks/repeated-benchmark-suite.md).
+Primary sanitized benchmark recordings: [docs/benchmarks/primary-data/](docs/benchmarks/primary-data/).
+Cost translation and scale-up math: [docs/benchmarks/api-cost-translation.md](docs/benchmarks/api-cost-translation.md).
+
+Current product proof: three fresh Claude Code `-p` pairs on the noisy benchmark showed Agent Analyzer guidance reducing estimated tokens by `12,370`, tool-output tokens by `12,698`, visible Claude output by `504`, and published Claude Sonnet 4.6 API-rate cost by `23.986%` while preserving the `go test ./...` quality gate. At comparable workload scale, that is about `$1,199/month` on `$5,000/month` of Claude Sonnet API-equivalent coding usage.
+
+The paid plugin allowlist is now intentionally narrow. It keeps the Agent Analyzer workflow and conditionally recommends only reducers that worked in repeated runs: Semble, context-mode, RTK, grepai, and Squeez. Telemetry tools such as ccusage/ccstatusline are not sold as reducers, and negative or too-small results such as claude-context, Probe, Caveman for Claude, claude-rlm, and claude-token-efficient are removed from default remediation advice.
 
 ## Local Runthrough
 
