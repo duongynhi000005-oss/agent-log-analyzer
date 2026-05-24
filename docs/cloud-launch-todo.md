@@ -328,7 +328,8 @@ Acceptance:
 - [ ] Wire paid scan aggregate metrics into plugin generation.
 - [ ] Render short-lived install page with plugin commands.
 - [ ] Store paid artifact in separate prefix/bucket with short TTL.
-- [ ] Add receipt/support email that repeats the analysis-first, benchmark-backed, no-unproven-tools message.
+- [x] Draft receipt/support email copy that repeats the analysis-first, benchmark-backed, no-unproven-tools message.
+- [ ] Implement receipt/support email delivery using `docs/remediation/receipt-email.md`.
 - [ ] Add refund/support process.
 
 Acceptance:
