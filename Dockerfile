@@ -16,6 +16,7 @@ COPY --from=build /out/api /usr/local/bin/claude-analyzer-api
 COPY --from=build /out/worker /usr/local/bin/claude-analyzer-worker
 COPY --from=build /out/sweeper /usr/local/bin/claude-analyzer-sweeper
 COPY web ./web
+COPY docs ./web/docs
 RUN mkdir -p /data && chown -R appuser:appuser /data
 USER appuser
 EXPOSE 8080
