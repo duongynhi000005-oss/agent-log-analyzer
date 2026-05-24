@@ -117,6 +117,8 @@ Paid checkout and plugin install UX must require explicit acknowledgment before 
 
 The generated plugin also includes `WAIVER.md`. Claude-facing setup prompts must tell Claude to summarize the waiver, ask for acceptance, and ask again before each installation command.
 
+Receipt/support email copy is specified in `docs/remediation/receipt-email.md` so the email surface repeats the same analysis-first, benchmark-backed, no-unproven-tools message when email delivery is implemented.
+
 ## Source Notes
 
 - Anthropic's May 14, 2026 large-codebase guidance says Claude Code performance depends on the surrounding harness: CLAUDE.md, hooks, skills, plugins, MCP servers, LSP integrations, and subagents. Source: https://claude.com/blog/how-claude-code-works-in-large-codebases-best-practices-and-where-to-start
