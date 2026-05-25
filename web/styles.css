@@ -60,8 +60,8 @@ body {
   top: 69px;
   right: 0;
   z-index: 0;
-  width: clamp(118px, 15vw, 176px);
-  max-width: 18%;
+  width: clamp(92px, 11vw, 132px);
+  max-width: 14%;
   pointer-events: none;
 }
 
@@ -95,12 +95,12 @@ body {
   }
 
   .hero h1 {
-    max-width: calc(100% - 112px);
+    max-width: calc(100% - 92px);
   }
 
   .landing-corner-image {
-    width: min(96px, 24vw);
-    max-width: 26%;
+    width: min(72px, 18vw);
+    max-width: 22%;
   }
 }
 
