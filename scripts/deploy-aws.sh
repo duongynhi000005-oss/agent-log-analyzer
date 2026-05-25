@@ -4,6 +4,7 @@ set -euo pipefail
 AWS_PROFILE="${AWS_PROFILE:-claude-analyzer-prod}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
 PLATFORM="${PLATFORM:-linux/amd64}"
+BUILDX_BUILDER="${BUILDX_BUILDER:-claude-analyzer-builder}"
 if [ -z "${IMAGE_TAG:-}" ]; then
   git_sha="$(git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"
   IMAGE_TAG="deploy-$(date -u +%Y%m%d%H%M%S)-${git_sha}"
@@ -59,11 +60,19 @@ registry="${ecr_repo%/*}"
 
 echo "deploy target: $image"
 echo "required platform: $PLATFORM"
+echo "buildx builder: $BUILDX_BUILDER"
 echo "immutable tag: $IMAGE_TAG"
 
 retry 3 ecr_login
 
-retry 2 docker buildx build --platform "$PLATFORM" -t "$image" --push .
+retry 2 docker buildx build \
+  --builder "$BUILDX_BUILDER" \
+  --platform "$PLATFORM" \
+  --provenance=false \
+  --sbom=false \
+  -t "$image" \
+  --push \
+  .
 
 remote_image="$(docker buildx imagetools inspect "$image" --format '{{json .Image}}')"
 remote_platform="$(printf '%s' "$remote_image" | python3 -c 'import json,sys; data=json.load(sys.stdin); print("%s/%s" % (data.get("os", ""), data.get("architecture", "")))')"
