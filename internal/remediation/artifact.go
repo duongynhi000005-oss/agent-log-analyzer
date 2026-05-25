@@ -122,20 +122,49 @@ type File struct {
 }
 
 type ToolRecommendation struct {
-	ID                string   `json:"id"`
-	Category          string   `json:"category"`
-	FailureModes      []string `json:"failure_modes,omitempty"`
-	Why               string   `json:"why"`
-	InstallCommand    string   `json:"install_command"`
-	RequiredBinary    string   `json:"required_binary,omitempty"`
-	BinaryInstallHint string   `json:"binary_install_hint,omitempty"`
-	Source            string   `json:"source"`
-	RiskLevel         string   `json:"risk_level,omitempty"`
-	DataMovementRisk  string   `json:"data_movement_risk,omitempty"`
-	InstallSurface    string   `json:"install_surface,omitempty"`
-	ConflictsWith     []string `json:"conflicts_with,omitempty"`
-	AmbiguityWarning  string   `json:"ambiguity_warning,omitempty"`
-	VettingNotes      string   `json:"vetting_notes,omitempty"`
+	ID                 string            `json:"id"`
+	Category           string            `json:"category"`
+	FailureModes       []string          `json:"failure_modes,omitempty"`
+	Why                string            `json:"why"`
+	InstallCommand     string            `json:"install_command"`
+	InstallInteractive string            `json:"install_interactive,omitempty"`
+	InstallCLI         string            `json:"install_cli,omitempty"`
+	MarketplaceCLI     string            `json:"marketplace_cli,omitempty"`
+	RequiredBinary     string            `json:"required_binary,omitempty"`
+	BinaryInstallHint  string            `json:"binary_install_hint,omitempty"`
+	Binary             *BinaryCheck      `json:"binary,omitempty"`
+	PostInstall        *PostInstallCheck `json:"post_install,omitempty"`
+	PlatformInstalls   map[string]string `json:"platform_installs,omitempty"`
+	InstallPhases      []string          `json:"install_phases,omitempty"`
+	Idempotent         *bool             `json:"idempotent,omitempty"`
+	Source             string            `json:"source"`
+	RiskLevel          string            `json:"risk_level,omitempty"`
+	DataMovementRisk   string            `json:"data_movement_risk,omitempty"`
+	InstallSurface     string            `json:"install_surface,omitempty"`
+	ConflictsWith      []string          `json:"conflicts_with,omitempty"`
+	AmbiguityWarning   string            `json:"ambiguity_warning,omitempty"`
+	VettingNotes       string            `json:"vetting_notes,omitempty"`
+}
+
+type BinaryCheck struct {
+	Name        string `json:"name"`
+	Check       string `json:"check"`
+	Expect      string `json:"expect_pattern,omitempty"`
+	Install     string `json:"install,omitempty"`
+	VerifyAfter string `json:"verify_after,omitempty"`
+}
+
+type PostInstallCheck struct {
+	RequiresRestart   bool   `json:"requires_restart"`
+	ReloadInteractive string `json:"reload_interactive,omitempty"`
+	VerifyInteractive string `json:"verify_interactive,omitempty"`
+	VerifyCLI         string `json:"verify_cli,omitempty"`
+}
+
+type ToolCatalog struct {
+	SchemaVersion string               `json:"schema_version"`
+	InstallOrder  []string             `json:"install_order"`
+	Tools         []ToolRecommendation `json:"tools"`
 }
 
 type Install struct {
@@ -217,6 +246,11 @@ func baseFiles(report analyzer.Report, pluginName string, recommendations []Tool
 			Path:    "SOURCE-NOTES.md",
 			Mode:    "0644",
 			Content: sourceNotes(),
+		},
+		{
+			Path:    "TOOL-CATALOG.json",
+			Mode:    "0644",
+			Content: toolCatalogJSON(recommendations),
 		},
 		{
 			Path:    "WAIVER.md",
@@ -542,7 +576,21 @@ func toolingRecommendations(report analyzer.Report) []ToolRecommendation {
 	return out
 }
 
+func toolCatalogJSON(recommendations []ToolRecommendation) string {
+	catalog := ToolCatalog{
+		SchemaVersion: "2026-05-25",
+		InstallOrder:  []string{"waiver", "detect_platform", "binaries", "marketplaces", "plugins", "reload_or_restart", "verify"},
+		Tools:         recommendations,
+	}
+	body, err := json.MarshalIndent(catalog, "", "  ")
+	if err != nil {
+		return "{}\n"
+	}
+	return string(body) + "\n"
+}
+
 func enrichToolRecommendation(rec ToolRecommendation) ToolRecommendation {
+	rec = enrichInstallAutomation(rec)
 	if tool, ok := analyzer.GetTool(recommendationRegistryID(rec.ID)); ok {
 		if rec.RiskLevel == "" {
 			rec.RiskLevel = string(tool.InstallRisk)
@@ -582,6 +630,88 @@ func enrichToolRecommendation(rec ToolRecommendation) ToolRecommendation {
 	}
 	if rec.VettingNotes == "" {
 		rec.VettingNotes = "Exact source URL is included; confirm current install instructions before running commands."
+	}
+	return rec
+}
+
+func enrichInstallAutomation(rec ToolRecommendation) ToolRecommendation {
+	if len(rec.InstallPhases) == 0 {
+		rec.InstallPhases = []string{"waiver", "detect_platform", "verify_existing", "install", "verify"}
+	}
+	if rec.Idempotent == nil {
+		v := false
+		rec.Idempotent = &v
+	}
+	if rec.RequiredBinary != "" && rec.Binary == nil {
+		rec.Binary = &BinaryCheck{
+			Name:        rec.RequiredBinary,
+			Check:       rec.RequiredBinary + " --version",
+			Expect:      rec.RequiredBinary + `\s+v?\d+|\d+\.\d+`,
+			Install:     rec.BinaryInstallHint,
+			VerifyAfter: "which " + rec.RequiredBinary,
+		}
+	}
+	switch rec.ID {
+	case "context-mode":
+		rec.InstallInteractive = "/plugin marketplace add mksglu/context-mode\n/plugin install context-mode@context-mode"
+		rec.MarketplaceCLI = "claude plugin marketplace add mksglu/context-mode"
+		rec.InstallCLI = "claude plugin install context-mode@context-mode"
+		rec.PostInstall = &PostInstallCheck{
+			RequiresRestart:   true,
+			ReloadInteractive: "/reload-plugins",
+			VerifyInteractive: "/context-mode:ctx-doctor",
+			VerifyCLI:         "claude plugin list --json",
+		}
+		rec.InstallPhases = []string{"waiver", "detect_platform", "marketplaces", "plugins", "reload_or_restart", "verify"}
+	case "typescript-lsp", "pyright-lsp", "gopls-lsp", "rust-analyzer-lsp", "php-lsp", "github", "notion", "linear", "sentry", "supabase":
+		plugin := rec.ID + "@claude-plugins-official"
+		rec.InstallInteractive = "/plugin install " + plugin
+		rec.InstallCLI = "claude plugin install " + plugin
+		rec.PostInstall = &PostInstallCheck{
+			RequiresRestart:   true,
+			ReloadInteractive: "/reload-plugins",
+			VerifyCLI:         "claude plugin list --json",
+		}
+		rec.InstallPhases = []string{"waiver", "detect_platform", "binaries", "plugins", "reload_or_restart", "verify"}
+	case "rtk":
+		rec.PlatformInstalls = map[string]string{
+			"darwin": "brew install rtk",
+			"linux":  "Review https://github.com/rtk-ai/rtk for current Linux install instructions before installing.",
+		}
+		rec.PostInstall = &PostInstallCheck{
+			RequiresRestart: false,
+			VerifyCLI:       "rtk --help",
+		}
+		rec.InstallPhases = []string{"waiver", "detect_platform", "binaries", "verify"}
+	case "grepai":
+		rec.PlatformInstalls = map[string]string{
+			"darwin": "brew install yoanbernabeu/tap/grepai",
+			"linux":  "Review https://github.com/yoanbernabeu/grepai for current Linux install instructions before installing.",
+		}
+		rec.PostInstall = &PostInstallCheck{
+			RequiresRestart: false,
+			VerifyCLI:       "grepai --help",
+		}
+		rec.InstallPhases = []string{"waiver", "detect_platform", "binaries", "verify"}
+	case "ccusage":
+		v := true
+		rec.Idempotent = &v
+		rec.PostInstall = &PostInstallCheck{
+			RequiresRestart: false,
+			VerifyCLI:       "npx ccusage@latest --help",
+		}
+	}
+	switch rec.ID {
+	case "typescript-lsp":
+		rec.Binary = &BinaryCheck{Name: "typescript-language-server", Check: "typescript-language-server --version", Expect: `\d+\.\d+`, Install: rec.BinaryInstallHint, VerifyAfter: "which typescript-language-server"}
+	case "pyright-lsp":
+		rec.Binary = &BinaryCheck{Name: "pyright-langserver", Check: "pyright-langserver --version", Expect: `pyright-langserver|\d+\.\d+`, Install: rec.BinaryInstallHint, VerifyAfter: "which pyright-langserver"}
+	case "gopls-lsp":
+		rec.Binary = &BinaryCheck{Name: "gopls", Check: "gopls version", Expect: `golang.org/x/tools/gopls|gopls`, Install: rec.BinaryInstallHint, VerifyAfter: "which gopls"}
+	case "rust-analyzer-lsp":
+		rec.Binary = &BinaryCheck{Name: "rust-analyzer", Check: "rust-analyzer --version", Expect: `rust-analyzer`, Install: rec.BinaryInstallHint, VerifyAfter: "which rust-analyzer"}
+	case "php-lsp":
+		rec.Binary = &BinaryCheck{Name: "intelephense", Check: "intelephense --version", Expect: `\d+\.\d+|intelephense`, Install: rec.BinaryInstallHint, VerifyAfter: "which intelephense"}
 	}
 	return rec
 }
@@ -1033,6 +1163,8 @@ description: Review the generated token-saving, code-intelligence, and MCP setup
 
 Read WAIVER.md first. Do not install anything until the user explicitly acknowledges the waiver and approves each command.
 
+Use TOOL-CATALOG.json for automation. It contains CLI-safe install commands, binary checks, platform guards, idempotency, and post-install verification.
+
 Recommended actions:
 
 ` + recommendationMarkdown(recommendations) + `
@@ -1040,10 +1172,11 @@ Recommended actions:
 Procedure:
 
 1. Inspect the repository language stack and confirm each recommendation still applies.
-2. Prefer official Claude Code marketplace plugins and documented language-server binaries.
-3. Ask before installing each binary or plugin.
-4. After installing plugins, run /reload-plugins.
-5. If any tool source differs from the recommendation, stop and ask the user.
+2. Read TOOL-CATALOG.json and follow its install_order: waiver, platform detection, binary checks, marketplace setup, plugin install, reload or restart, verification.
+3. Prefer install_cli from Bash; install_interactive is for humans inside Claude Code slash-command UI.
+4. Ask before installing each binary, marketplace, plugin, or hook.
+5. After installing plugins, run /reload-plugins or restart Claude Code, then run the listed verify command.
+6. If any tool source differs from the recommendation, stop and ask the user.
 `
 }
 
@@ -1079,17 +1212,21 @@ description: Use when setting up vetted token-saving tools, language servers, Cl
 
 Install only with explicit user approval.
 
+Machine-readable install metadata lives in TOOL-CATALOG.json. Use it as the source of truth for CLI-safe commands, binary checks, platform-specific installs, idempotency, and post-install verification.
+
 ` + recommendationMarkdown(recommendations) + `
 
-Installation discipline:
+Installation order:
 
-1. Read WAIVER.md to the user in summary form and get explicit acceptance before proceeding.
-2. Verify the current OS, package manager, and existing binaries.
-3. Install language-server binaries before the matching code-intelligence plugin.
-4. Use official Claude Code marketplace plugins where listed.
-5. Run /reload-plugins after plugin installation.
-6. If a recommended binary is already installed, do not reinstall it.
-7. If a repository has custom tooling, prefer its checked-in setup docs over generic install commands.
+1. waiver: read WAIVER.md to the user in summary form and get explicit acceptance.
+2. detect_platform: verify OS, package manager, Claude Code version, and existing binaries/plugins.
+3. binaries: install required binaries first, using the binary.check and binary.verify_after fields.
+4. marketplaces: add required marketplaces with marketplace_cli.
+5. plugins: install plugins with install_cli; install_interactive is for human slash-command use only.
+6. reload_or_restart: run /reload-plugins or restart Claude Code when post_install.requires_restart is true.
+7. verify: run post_install.verify_cli or post_install.verify_interactive and stop if verification fails.
+
+If a recommended binary is already installed, do not reinstall it. If a repository has custom tooling, prefer its checked-in setup docs over generic install commands.
 `
 }
 
@@ -1127,10 +1264,40 @@ func recommendationMarkdown(recommendations []ToolRecommendation) string {
 			b.WriteString(rec.AmbiguityWarning)
 			b.WriteString("\n")
 		}
-		b.WriteString("  Install: `")
+		if len(rec.InstallPhases) > 0 {
+			b.WriteString("  Install phases: `")
+			b.WriteString(strings.Join(rec.InstallPhases, "`, `"))
+			b.WriteString("`\n")
+		}
+		b.WriteString("  Install reference: `")
 		b.WriteString(rec.InstallCommand)
 		b.WriteString("`\n")
-		if rec.RequiredBinary != "" {
+		if rec.InstallInteractive != "" {
+			b.WriteString("  Install interactive: `")
+			b.WriteString(rec.InstallInteractive)
+			b.WriteString("`\n")
+		}
+		if rec.MarketplaceCLI != "" {
+			b.WriteString("  Marketplace CLI: `")
+			b.WriteString(rec.MarketplaceCLI)
+			b.WriteString("`\n")
+		}
+		if rec.InstallCLI != "" {
+			b.WriteString("  Install CLI: `")
+			b.WriteString(rec.InstallCLI)
+			b.WriteString("`\n")
+		}
+		if rec.Binary != nil {
+			b.WriteString("  Binary check: name=`")
+			b.WriteString(rec.Binary.Name)
+			b.WriteString("`, check=`")
+			b.WriteString(rec.Binary.Check)
+			b.WriteString("`, expect=`")
+			b.WriteString(rec.Binary.Expect)
+			b.WriteString("`, verify_after=`")
+			b.WriteString(rec.Binary.VerifyAfter)
+			b.WriteString("`\n")
+		} else if rec.RequiredBinary != "" {
 			b.WriteString("  Required binary: `")
 			b.WriteString(rec.RequiredBinary)
 			b.WriteString("`\n")
@@ -1138,6 +1305,38 @@ func recommendationMarkdown(recommendations []ToolRecommendation) string {
 		if rec.BinaryInstallHint != "" {
 			b.WriteString("  Binary install hint: `")
 			b.WriteString(rec.BinaryInstallHint)
+			b.WriteString("`\n")
+		}
+		if len(rec.PlatformInstalls) > 0 {
+			keys := make([]string, 0, len(rec.PlatformInstalls))
+			for key := range rec.PlatformInstalls {
+				keys = append(keys, key)
+			}
+			sort.Strings(keys)
+			b.WriteString("  Platform installs:")
+			for _, key := range keys {
+				b.WriteString(" ")
+				b.WriteString(key)
+				b.WriteString("=`")
+				b.WriteString(rec.PlatformInstalls[key])
+				b.WriteString("`")
+			}
+			b.WriteString("\n")
+		}
+		if rec.PostInstall != nil {
+			b.WriteString("  Post-install: restart=`")
+			b.WriteString(fmt.Sprintf("%t", rec.PostInstall.RequiresRestart))
+			b.WriteString("`, reload=`")
+			b.WriteString(rec.PostInstall.ReloadInteractive)
+			b.WriteString("`, verify_cli=`")
+			b.WriteString(rec.PostInstall.VerifyCLI)
+			b.WriteString("`, verify_interactive=`")
+			b.WriteString(rec.PostInstall.VerifyInteractive)
+			b.WriteString("`\n")
+		}
+		if rec.Idempotent != nil {
+			b.WriteString("  Idempotent: `")
+			b.WriteString(fmt.Sprintf("%t", *rec.Idempotent))
 			b.WriteString("`\n")
 		}
 		b.WriteString("  Source: ")

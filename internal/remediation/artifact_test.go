@@ -75,6 +75,7 @@ func TestGenerateCreatesClaudePluginArtifact(t *testing.T) {
 		"README.md",
 		"INSTALL.md",
 		"SOURCE-NOTES.md",
+		"TOOL-CATALOG.json",
 		"WAIVER.md",
 		"agents/token-hygiene-reviewer.md",
 		"commands/agent-analyzer-review.md",
@@ -178,6 +179,34 @@ func TestGenerateCreatesClaudePluginArtifact(t *testing.T) {
 		if len(recommendation.FailureModes) == 0 {
 			t.Fatalf("recommendation %s missing failure mode metadata: %#v", recommendation.ID, recommendation)
 		}
+		if len(recommendation.InstallPhases) == 0 || recommendation.Idempotent == nil {
+			t.Fatalf("recommendation %s missing machine-readable install control metadata: %#v", recommendation.ID, recommendation)
+		}
+	}
+	catalog := fileContent(t, artifact, "TOOL-CATALOG.json")
+	for _, want := range []string{
+		`"install_order"`,
+		`"install_cli": "claude plugin install typescript-lsp@claude-plugins-official"`,
+		`"install_interactive": "/plugin install typescript-lsp@claude-plugins-official"`,
+		`"post_install"`,
+		`"binary"`,
+		`"idempotent"`,
+	} {
+		if !strings.Contains(catalog, want) {
+			t.Fatalf("TOOL-CATALOG.json missing %s:\n%s", want, catalog)
+		}
+	}
+	toolingSkill := fileContent(t, artifact, "skills/tooling-setup/SKILL.md")
+	for _, want := range []string{
+		"TOOL-CATALOG.json",
+		"Install CLI: `claude plugin install typescript-lsp@claude-plugins-official`",
+		"install_interactive is for human slash-command use only",
+		"marketplaces: add required marketplaces with marketplace_cli",
+		"verify: run post_install.verify_cli",
+	} {
+		if !strings.Contains(toolingSkill, want) {
+			t.Fatalf("tooling setup skill missing %q:\n%s", want, toolingSkill)
+		}
 	}
 	if !strings.Contains(artifact.RequiredAcknowledgment, "at my own risk") {
 		t.Fatalf("expected liability acknowledgment, got %q", artifact.RequiredAcknowledgment)
@@ -227,6 +256,29 @@ func TestToolRecommendationsUsePreciseSources(t *testing.T) {
 	}
 	if len(rtk.ConflictsWith) == 0 {
 		t.Fatalf("RTK recommendation must include conflict metadata: %#v", *rtk)
+	}
+	pyright := recommendationByID(recommendations, "pyright-lsp")
+	if pyright == nil {
+		t.Fatal("expected pyright-lsp recommendation")
+	}
+	if pyright.InstallCLI != "claude plugin install pyright-lsp@claude-plugins-official" ||
+		pyright.InstallInteractive != "/plugin install pyright-lsp@claude-plugins-official" {
+		t.Fatalf("pyright-lsp must expose both CLI and interactive install forms: %#v", *pyright)
+	}
+	if pyright.Binary == nil ||
+		pyright.Binary.Check != "pyright-langserver --version" ||
+		pyright.Binary.VerifyAfter != "which pyright-langserver" {
+		t.Fatalf("pyright-lsp must expose structured binary verification: %#v", *pyright)
+	}
+	contextMode := recommendationByID(recommendations, "context-mode")
+	if contextMode == nil {
+		t.Fatal("expected context-mode recommendation")
+	}
+	if contextMode.MarketplaceCLI != "claude plugin marketplace add mksglu/context-mode" ||
+		contextMode.InstallCLI != "claude plugin install context-mode@context-mode" ||
+		contextMode.PostInstall == nil ||
+		contextMode.PostInstall.VerifyInteractive != "/context-mode:ctx-doctor" {
+		t.Fatalf("context-mode must expose marketplace CLI and doctor verification: %#v", *contextMode)
 	}
 }
 
