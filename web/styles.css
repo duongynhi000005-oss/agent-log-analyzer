@@ -719,6 +719,65 @@ pre {
   height: auto;
 }
 
+.plugin-preview {
+  position: relative;
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid rgba(126, 231, 135, 0.42);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(126, 231, 135, 0.14), transparent 42%),
+    linear-gradient(180deg, rgba(17, 24, 32, 0.92), rgba(8, 11, 16, 0.92));
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.32),
+    0 0 26px rgba(126, 231, 135, 0.1);
+}
+
+.plugin-preview-copy,
+.plugin-preview-note {
+  margin: 0;
+  max-width: 820px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.plugin-count-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.plugin-count-grid > div {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(126, 231, 135, 0.28);
+  border-radius: 8px;
+  background: rgba(8, 11, 16, 0.78);
+}
+
+.plugin-count-grid strong,
+.plugin-count-grid span {
+  display: block;
+}
+
+.plugin-count-grid strong {
+  color: var(--green);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: clamp(20px, 1.8vw, 24px);
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 0 18px rgba(126, 231, 135, 0.22);
+}
+
+.plugin-count-grid span {
+  margin-top: 8px;
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
 .final-command-panel {
   margin-top: 24px;
 }
@@ -2016,7 +2075,8 @@ pre {
   .trust-stack,
   .outcome-preview,
   .preview-frame,
-  .screenshot-preview-grid {
+  .screenshot-preview-grid,
+  .plugin-count-grid {
     grid-template-columns: 1fr;
   }
 
