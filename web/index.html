@@ -245,6 +245,33 @@
             </div>
           </div>
         </section>
+
+        <section class="product-preview" aria-labelledby="product-preview-heading">
+          <div class="section-kicker">
+            <p class="eyebrow">report preview</p>
+            <h2 id="product-preview-heading">See the waste before changing anything.</h2>
+          </div>
+          <div class="screenshot-preview-grid">
+            <figure class="screenshot-preview screenshot-preview-wide">
+              <img src="/images/report-preview-waste.png" alt="Agent Analyzer report preview showing an efficiency score, estimated avoidable token spend, and top waste problems." decoding="async" />
+            </figure>
+            <figure class="screenshot-preview">
+              <img src="/images/npx-command-preview.png" alt="Agent Analyzer command card with the NPX command and local scan note." decoding="async" />
+            </figure>
+          </div>
+        </section>
+
+        <section class="panel command-panel command-panel-primary final-command-panel" id="final-session-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">copy / paste</p>
+              <h2>Are you ready to start saving tokens?</h2>
+            </div>
+            <button class="cta-copy-button" data-copy-prompt type="button">Copy NPX Command</button>
+          </div>
+          <pre data-run-command>npx --yes agent-analyzer@latest run</pre>
+          <p class="command-note">Runs on your machine first, asks before upload, and sends only the sanitized report JSON. <button type="button" class="help-tip" data-tippy-content="This command uses the published npm package. It discovers supported local agent logs, parses and redacts locally, writes a reviewable report file, asks for confirmation, then uploads only that report JSON." aria-label="More information">?</button></p>
+        </section>
       </section>
 
       <section class="report" id="report" hidden>

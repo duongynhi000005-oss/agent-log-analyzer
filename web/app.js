@@ -3,7 +3,7 @@ const reportEl = document.querySelector("#report");
 const sessionPanel = document.querySelector("#session-panel");
 const sessionStatus = document.querySelector("#session-status");
 const promptBlock = document.querySelector("#claude-prompt");
-const copyPromptButton = document.querySelector("#copy-prompt");
+const copyPromptButtons = document.querySelectorAll("[data-copy-prompt]");
 const unlockPaidButton = document.querySelector("#unlock-paid");
 const waiverAccepted = document.querySelector("#waiver-accepted");
 const paidStatus = document.querySelector("#paid-status");
@@ -19,11 +19,19 @@ if (route) {
   pollReport(route.jobID, route.token);
 } else {
   reportEl.hidden = true;
-  if (promptBlock) promptBlock.textContent = runCommand();
+  document.querySelectorAll("[data-run-command]").forEach((block) => {
+    block.textContent = runCommand();
+  });
   if (sessionPanel) sessionPanel.hidden = false;
 }
 
-copyPromptButton?.addEventListener("click", () => copyText(promptBlock.textContent, copyPromptButton));
+copyPromptButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const panel = button.closest(".command-panel");
+    const commandBlock = panel?.querySelector("[data-run-command]") || promptBlock;
+    copyText(commandBlock.textContent, button);
+  });
+});
 copyPaidCommandButton?.addEventListener("click", () => copyText(paidCommand.textContent, copyPaidCommandButton));
 
 unlockPaidButton?.addEventListener("click", async () => {
@@ -1746,12 +1754,32 @@ async function responseError(response) {
 }
 
 async function copyText(text, button) {
-  await navigator.clipboard.writeText(text);
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (error) {
+      copyTextFallback(text);
+    }
+  } else {
+    copyTextFallback(text);
+  }
   const previous = button.textContent;
   button.textContent = "Copied";
   setTimeout(() => {
     button.textContent = previous;
   }, 1200);
+}
+
+function copyTextFallback(text) {
+  const field = document.createElement("textarea");
+  field.value = text;
+  field.setAttribute("readonly", "");
+  field.style.position = "fixed";
+  field.style.top = "-1000px";
+  document.body.appendChild(field);
+  field.select();
+  document.execCommand("copy");
+  field.remove();
 }
 
 function sleep(ms) {
