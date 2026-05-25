@@ -94,13 +94,14 @@ body {
     max-width: 100%;
   }
 
+  .hero h1 {
+    max-width: calc(100% - 112px);
+  }
+
   .landing-corner-image {
-    position: relative;
-    top: auto;
-    right: auto;
-    width: min(144px, 38vw);
-    max-width: 100%;
-    margin: 22px 0 24px auto;
+    top: 92px;
+    width: min(96px, 24vw);
+    max-width: 26%;
   }
 }
 
