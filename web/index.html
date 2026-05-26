@@ -173,21 +173,21 @@
             <img src="/images/kitty-lab-coat.png" alt="" width="1024" height="1024" decoding="async" fetchpriority="high" />
           </picture>
         </div>
-        <p class="subhead" itemprop="description">Analyze the most relevant recent sessions locally. Upload only the sanitized report.</p>
-        <p class="capacity-note">Every wasted reread, retry, and bloated context window burns the same plan capacity you need for actual coding. Our repeated benchmarks narrowed the advice to what actually saved tokens: scoped retrieval, output budgeting, session hygiene, and explicit log compression.</p>
+        <p class="subhead" itemprop="description">Analyze recent sessions locally. Upload only the sanitized report.</p>
+        <p class="capacity-note">Agent Analyzer finds rereads, retries, and context bloat, then builds a customized plugin that directly addresses the waste patterns it detects in your logs.</p>
         <h2 class="sr-only">What Agent Analyzer detects</h2>
         <ul class="proof" aria-label="Agent Analyzer detection capabilities">
-          <li>Detect context bloat</li>
-          <li>Find retry loops and wasted reads</li>
-          <li>Get a benchmark-backed report pack and generated optimization plugin</li>
+          <li>Detect context bloat and retry loops</li>
+          <li>Find wasted reads and oversized outputs</li>
+          <li>Get a benchmark-backed report pack and custom plugin</li>
         </ul>
         <h2 class="sr-only">Privacy and trust guarantees</h2>
         <ul class="trust" aria-label="Privacy and trust guarantees">
           <li>No account required</li>
           <li>Raw logs stay local <button type="button" class="help-tip" data-tippy-content="The NPX command analyzes supported agent logs on your machine first. SQLite extraction for Cursor, Kiro, Google Antigravity, and bounded Codex diagnostic logs is read-only, bounded to known rows, and remains local. The upload step sends the generated sanitized report JSON, not raw transcript files or raw state databases." aria-label="More information">?</button></li>
-          <li>Secrets redacted locally before upload <button type="button" class="help-tip" data-tippy-content="The CLI runs deterministic redaction on your computer before writing the report JSON. The hosted service receives category counts and placeholders, not the original redacted values. Redaction is best-effort; users should still review the JSON before upload." aria-label="More information">?</button></li>
+          <li>Secrets redacted before upload <button type="button" class="help-tip" data-tippy-content="The CLI runs deterministic redaction on your computer before writing the report JSON. The hosted service receives category counts and placeholders, not the original redacted values. Redaction is best-effort; users should still review the JSON before upload." aria-label="More information">?</button></li>
         </ul>
-        <p class="disclaimer">The analysis runs on your machine and uploads only the sanitized JSON report you review.</p>
+        <p class="disclaimer">Your machine does the analysis; only the reviewed sanitized JSON report uploads.</p>
         <p class="trust-links"><a href="/security/">Security</a> <a href="/privacy/">Privacy</a></p>
 
         <section class="panel command-panel command-panel-primary" id="session-panel">
