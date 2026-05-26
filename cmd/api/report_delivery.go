@@ -164,10 +164,10 @@ func isJSONRequest(r *http.Request) bool {
 
 func renderReportDeliverySentPage(w http.ResponseWriter, email, reportURL, artifactURL string) {
 	command := `PLUGIN_ZIP="/path/to/agent-analyzer-optimization-plugin.zip"
-claude --plugin-dir "$PLUGIN_ZIP"`
+claude plugin install "$PLUGIN_ZIP"`
 	escapedCommand := htmlstd.EscapeString(command)
 	body := fmt.Sprintf(
-		`<p>We recorded <strong>%s</strong> and sent the free report pack and custom plugin links to that address.</p><p class="download-button-row"><a class="plugin-cta" href="%s">Download report pack</a><a class="plugin-cta" href="%s">Download custom plugin</a></p><p>The email also reminds you about the Spec Kitty training voucher and links to the <a href="https://github.com/Priivacy-ai/spec-kitty" rel="noopener noreferrer">Spec Kitty GitHub repo</a>.</p><p>Choose your harness in <strong>INSTALL.md</strong> inside the plugin zip. For Claude Code, point Claude at the zip:</p><div class="simple-command-copy"><pre><code>%s</code></pre><button type="button" class="copy-agents-line" data-copy="%s">Copy command</button></div><p>For other harnesses, use the matching folder instead of installing the Claude Code plugin: Codex uses <strong>harnesses/codex/</strong>, OpenCode uses <strong>harnesses/opencode/</strong>, Cursor uses <strong>harnesses/cursor/</strong>, Kiro uses <strong>harnesses/kiro/</strong>, Antigravity uses <strong>harnesses/antigravity/</strong>, and Claude Desktop MCP uses <strong>harnesses/claude-desktop-mcp/</strong>. Claude Desktop local/session logs are analyzed automatically; Desktop remediation currently uses the MCP/connector guidance. The plugin was generated from sanitized report JSON only. Raw transcripts were not attached or uploaded.</p>`,
+		`<p>We recorded <strong>%s</strong> and sent the free report pack and custom plugin links to that address.</p><p class="download-button-row"><a class="plugin-cta" href="%s">Download report pack</a><a class="plugin-cta" href="%s">Download custom plugin</a></p><p>The email also reminds you about the Spec Kitty training voucher and links to the <a href="https://github.com/Priivacy-ai/spec-kitty" rel="noopener noreferrer">Spec Kitty GitHub repo</a>.</p><p>Choose your harness in <strong>INSTALL.md</strong> inside the plugin zip. For Claude Code, install it persistently, then run <strong>/agent-analyzer-status</strong> so you can see it working:</p><div class="simple-command-copy"><pre><code>%s</code></pre><button type="button" class="copy-agents-line" data-copy="%s">Copy command</button></div><p>Use <strong>claude --plugin-dir "$PLUGIN_ZIP"</strong> only for a one-session preview. For other harnesses, use the matching folder instead of installing the Claude Code plugin: Codex uses <strong>harnesses/codex/</strong>, OpenCode uses <strong>harnesses/opencode/</strong>, Cursor uses <strong>harnesses/cursor/</strong>, Kiro uses <strong>harnesses/kiro/</strong>, Antigravity uses <strong>harnesses/antigravity/</strong>, and Claude Desktop MCP uses <strong>harnesses/claude-desktop-mcp/</strong>. Claude Desktop local/session logs are analyzed automatically; Desktop remediation currently uses the MCP/connector guidance. The plugin was generated from sanitized report JSON only. Raw transcripts were not attached or uploaded.</p>`,
 		htmlstd.EscapeString(email),
 		htmlstd.EscapeString(reportURL),
 		htmlstd.EscapeString(artifactURL),
@@ -199,12 +199,16 @@ Choose your harness:
 
 Claude Code:
 1. Save agent-analyzer-optimization-plugin.zip somewhere local.
-2. Run:
+2. Install it persistently:
 
    PLUGIN_ZIP="/path/to/agent-analyzer-optimization-plugin.zip"
-   claude --plugin-dir "$PLUGIN_ZIP"
+   claude plugin install "$PLUGIN_ZIP"
 
-3. Ask Claude Code to explain what the plugin installs before approving any recommended tool setup.
+3. Open Claude Code and run /agent-analyzer-status so you can see the custom guidance is active.
+4. Ask Claude Code to explain what the plugin installs before approving any recommended tool setup.
+
+Temporary preview only:
+- claude --plugin-dir "$PLUGIN_ZIP"
 
 Codex:
 - Merge harnesses/codex/AGENTS-snippet.md into AGENTS.md.

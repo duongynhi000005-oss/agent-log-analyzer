@@ -73,6 +73,7 @@ func TestGenerateCreatesClaudePluginArtifact(t *testing.T) {
 	for _, path := range []string{
 		".claude-plugin/plugin.json",
 		"README.md",
+		"START_HERE.md",
 		"INSTALL.md",
 		"SOURCE-NOTES.md",
 		"TOOL-CATALOG.json",
@@ -109,8 +110,8 @@ func TestGenerateCreatesClaudePluginArtifact(t *testing.T) {
 			t.Fatalf("did not expect bash nag hook file %s in %#v", path, artifact.Files)
 		}
 	}
-	if !strings.Contains(artifact.Install.Command, "claude --plugin-dir") {
-		t.Fatalf("expected plugin-dir install command, got %s", artifact.Install.Command)
+	if !strings.Contains(artifact.Install.Command, "claude plugin install") {
+		t.Fatalf("expected persistent plugin install command, got %s", artifact.Install.Command)
 	}
 	readme := fileContent(t, artifact, "README.md")
 	for _, want := range []string{

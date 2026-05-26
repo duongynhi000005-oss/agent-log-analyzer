@@ -27,7 +27,11 @@
     <meta name="twitter:description" content="Local-first deterministic profiler for supported agentic coding log token waste, backed by repeated benchmark fixtures." />
     <meta name="twitter:image" content="https://analyzer.spec-kitty.ai/images/social-card.png" />
     <meta name="twitter:image:alt" content="Agent Analyzer social card: What's wasting your agentic coding tokens?" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <link rel="manifest" href="/site.webmanifest" />
     <link rel="preload" href="/vendor/tippy/tippy.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
     <noscript><link rel="stylesheet" href="/vendor/tippy/tippy.css" /></noscript>
     <link rel="stylesheet" href="/styles.css" />
@@ -327,20 +331,23 @@
           <strong>0 model tokens used to generate this report.</strong>
           <span>Agent Analyzer uses deterministic local parsing and server-side rendering, not an LLM reading your logs.</span>
         </div>
-        <div class="score">
-          <span id="score">--</span>
-          <small>efficiency score <button type="button" class="help-tip" data-tippy-content="What does this score mean? Efficiency is 100 minus the high end of estimated plugin-addressable token savings. The estimate is deterministic: each finding gets a bounded token-impact estimate and a conservative plugin capture range, then totals are capped at 65%." aria-label="More information">?</button></small>
-        </div>
-        <div>
-          <h2>Estimated Waste <button type="button" class="help-tip" data-tippy-content="How is waste estimated? This is the estimated token range our generated plugin can plausibly help recover. Repeated-read guardrails, retry-loop stops, tool-output caps, context-boundary guidance, and cache hygiene each have bounded capture rates." aria-label="More information">?</button></h2>
-          <p id="waste"></p>
+        <section class="savings-hero" aria-labelledby="savings-hero-title">
+          <div class="savings-copy">
+          <p class="eyebrow">custom token recovery target</p>
+          <h2 id="savings-hero-title"><span id="savings-percent">--</span> less waste, targeted by your custom skills <button type="button" class="help-tip" data-tippy-content="How is waste estimated? This is the estimated token range our generated plugin can plausibly help recover. Repeated-read guardrails, retry-loop stops, tool-output caps, context-boundary guidance, and cache hygiene each have bounded capture rates." aria-label="More information">?</button></h2>
+          <p id="waste" class="savings-token-range"></p>
           <p id="token-volume" class="command-note"></p>
-          <p class="capacity-note">Cutting this waste helps the same coding plan produce more useful implementation work before you run out of tokens.</p>
+          <p class="capacity-note">Analyze locally, download the custom skills generated from your own logs, then apply the exact guards for the token leaks Agent Analyzer found.</p>
           <div class="report-cta-row" aria-label="Report actions">
             <a class="report-primary-cta" href="#download-report-section">Download report pack</a>
-            <a class="report-secondary-cta" href="#plugin-purchase">Get my custom plugin</a>
+            <a class="report-secondary-cta" href="#plugin-purchase">Download custom skills</a>
           </div>
-        </div>
+          </div>
+          <div class="score">
+            <span id="score">--</span>
+            <small>efficiency score <button type="button" class="help-tip" data-tippy-content="What does this score mean? Efficiency is 100 minus the high end of estimated plugin-addressable token savings. The estimate is deterministic: each finding gets a bounded token-impact estimate and a conservative plugin capture range, then totals are capped at 65%." aria-label="More information">?</button></small>
+          </div>
+        </section>
         <div class="problem-section">
           <h2>Top Problems <button type="button" class="help-tip" data-tippy-content="Bubble size is estimated plugin-addressable token savings for that finding. Tool-output and cache issues use token fields when available; rereads, retries, and context spikes use bounded count-scaled estimates multiplied by conservative plugin capture rates." aria-label="More information">?</button></h2>
           <div id="findings" class="problem-bubbles" role="list" aria-label="Top problems sized by estimated plugin-addressable token savings"></div>
@@ -369,7 +376,7 @@
               <li>Output-budgeted command habits.</li>
               <li>No unproven reducer installs.</li>
             </ul>
-            <a class="plugin-cta" href="#plugin-purchase">Get my custom plugin</a>
+            <a class="plugin-cta" href="#plugin-purchase">Download custom skills</a>
           </div>
           <div class="plugin-fixes-card">
             <h3>Copy-ready AGENTS.md lines</h3>
@@ -381,7 +388,7 @@
           <h2>Recommended tools to address waste <button type="button" class="help-tip" data-tippy-content="Recommendation ranking comes from allowlisted tool metadata and deterministic signals such as tool-output bloat, retrieval friction, usage visibility, and MCP/skill utilization. Unknown private names are not echoed." aria-label="More information">?</button></h2>
           <p class="section-note">These are not random installs. Telemetry tools are labeled as measurement only, and reducers are recommended only when our repeated runs showed savings for the matching waste signal. Use the generated plugin to turn the report into setup instructions.</p>
           <div class="recommendation-cta-row">
-            <a class="plugin-cta" href="#plugin-purchase">Get my custom plugin</a>
+            <a class="plugin-cta" href="#plugin-purchase">Download custom skills</a>
             <a class="recommendation-allowlist-link" href="/allowed-tools.html">Review vetted allowlist</a>
             <a class="recommendation-allowlist-link" href="/proof/results.html">Review benchmark results</a>
           </div>

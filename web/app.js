@@ -157,8 +157,9 @@ function renderReport(report) {
   document.querySelector("#report-status").innerHTML =
     '<a href="#download-report-section">Download your custom skills and save tokens now.</a>';
   document.querySelector("#score").textContent = report.score;
-  document.querySelector("#waste").textContent =
-    `${report.estimated_waste_pct.low}-${report.estimated_waste_pct.high}% avoidable token spend`;
+  const wasteRange = normalizeWasteRange(report.estimated_waste_pct);
+  document.querySelector("#savings-percent").textContent = `${wasteRange.low}-${wasteRange.high}%`;
+  document.querySelector("#waste").textContent = `${estimatedSavingsRange(report)} estimated tokens are addressable from the sessions you analyzed.`;
   renderTokenVolume(report);
 
   const findings = document.querySelector("#findings");
@@ -459,6 +460,15 @@ function renderTokenVolume(report) {
     "What is counted here? Accuracy depends on the source log. When native usage fields exist, we use them. Otherwise we estimate roughly one token per four characters. Tool-output volume is derived from tool-result payload size and similar estimates. This is directional, not invoice-grade accounting.",
   ));
   window.AgentAnalyzerTooltips?.init(tokenVolume);
+}
+
+function estimatedSavingsRange(report) {
+  const metrics = report?.metrics || {};
+  const wasteRange = normalizeWasteRange(report?.estimated_waste_pct);
+  const total = numberValue(metrics.estimated_tokens);
+  const low = Math.round(total * wasteRange.low / 100);
+  const high = Math.round(total * wasteRange.high / 100);
+  return `${formatCompactNumber(low)}-${formatCompactNumber(high)}`;
 }
 
 function buildHelpTip(text) {

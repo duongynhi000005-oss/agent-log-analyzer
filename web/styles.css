@@ -922,6 +922,41 @@ pre {
   line-height: 1.4;
 }
 
+.savings-hero {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
+  gap: 18px;
+  align-items: stretch;
+  padding: clamp(18px, 2.8vw, 30px);
+  border: 1px solid rgba(126, 231, 135, 0.24);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(126, 231, 135, 0.1), transparent 45%),
+    #0a0f14;
+}
+
+.savings-copy h2 {
+  max-width: 980px;
+  margin: 4px 0 10px;
+  font-size: clamp(30px, 4.8vw, 60px);
+  line-height: 0.98;
+}
+
+.savings-copy h2 span {
+  display: inline-block;
+  color: var(--green);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.savings-token-range {
+  margin: 0;
+  max-width: 820px;
+  color: #d8dee4;
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.35;
+}
+
 .score {
   min-height: 160px;
   display: grid;
@@ -2083,6 +2118,10 @@ pre {
   }
 
   .plugin-pitch {
+    grid-template-columns: 1fr;
+  }
+
+  .savings-hero {
     grid-template-columns: 1fr;
   }
 

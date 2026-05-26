@@ -33,16 +33,16 @@ Claude Code plugins use a root directory with:
 - `commands/*.md`
 - optional supporting files such as `WAIVER.md`
 
-The generator follows that structure so the generated artifact can be loaded as a Claude Code plugin archive. The default command uses Claude Code's session-scoped plugin loading:
+The generator follows that structure so the generated artifact can be installed as a Claude Code plugin archive. The default command uses persistent Claude Code plugin installation, then asks the user to run `/agent-analyzer-status` for immediate verification:
 
 ```sh
 PLUGIN_URL="<private-plugin-zip-url>"
 PLUGIN_ZIP="$(mktemp -t agent-analyzer-plugin.XXXXXX.zip)"
 curl -fsS "$PLUGIN_URL" -o "$PLUGIN_ZIP"
-claude --plugin-dir "$PLUGIN_ZIP"
+claude plugin install "$PLUGIN_ZIP"
 ```
 
-Marketplace installation can be added after the plugin store is live. The generated artifact format should remain the same.
+Session-scoped preview remains available with `claude --plugin-dir "$PLUGIN_ZIP"`, but user-facing install copy should not lead with it. Marketplace installation can be added after the plugin store is live. The generated artifact format should remain the same.
 
 ## Generated Contents
 
@@ -50,6 +50,7 @@ Always generated:
 
 - `.claude-plugin/plugin.json`
 - `README.md`
+- `START_HERE.md`
 - `WAIVER.md`
 - `TOOL-CATALOG.json`
 - `commands/agent-analyzer-status.md`

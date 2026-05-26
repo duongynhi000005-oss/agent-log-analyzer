@@ -229,7 +229,8 @@ func TestReportDeliveryEmailsReportPackAndPluginAttachments(t *testing.T) {
 		!strings.Contains(message.Body, "Spec Kitty training voucher") ||
 		!strings.Contains(message.Body, "https://github.com/Priivacy-ai/spec-kitty") ||
 		!strings.Contains(message.Body, "Choose your harness") ||
-		!strings.Contains(message.Body, "claude --plugin-dir") ||
+		!strings.Contains(message.Body, "claude plugin install") ||
+		!strings.Contains(message.Body, "/agent-analyzer-status") ||
 		!strings.Contains(message.Body, "harnesses/codex/AGENTS-snippet.md") ||
 		!strings.Contains(message.Body, "harnesses/claude-desktop-mcp/README.md") ||
 		!strings.Contains(message.Body, "Raw transcripts were not uploaded") {
@@ -755,7 +756,7 @@ func TestReportPageServerRendersCompletedReport(t *testing.T) {
 		"42",
 		"Large shell/tool output overhead",
 		"Cap noisy command output",
-		"Get my custom plugin",
+		"Download custom skills",
 		"Download report pack",
 		"Download the report pack and your custom plugin for free",
 		"Email required: enter it once to unlock both downloads and receive the links.",

@@ -136,7 +136,11 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
     <meta name="twitter:description" content="Private deterministic report generated from sanitized local Agent Analyzer JSON." />
     {{if ne .Job.Status "completed"}}<meta http-equiv="refresh" content="2" />{{end}}
     <title>Agent Analyzer Report</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <link rel="manifest" href="/site.webmanifest" />
     <link rel="preload" href="{{staticAssetPath "vendor/tippy/tippy.css"}}" as="style" onload="this.onload=null;this.rel='stylesheet'" />
     <noscript><link rel="stylesheet" href="{{staticAssetPath "vendor/tippy/tippy.css"}}" /></noscript>
     <link rel="stylesheet" href="{{staticAssetPath "styles.css"}}" />
@@ -150,20 +154,23 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
           <strong>0 model tokens used to generate this report.</strong>
           <span>Agent Analyzer uses deterministic local parsing and server-side rendering, not an LLM reading your logs. {{helpTip "How can report generation cost zero model tokens? The CLI parses local logs with deterministic Go code, writes sanitized JSON, and the hosted page renders that JSON. No raw transcript is sent to a model and no model call is made to produce this report."}}</span>
         </div>
-        <div class="score">
-          <span id="score">{{.Report.Score}}</span>
-          <small>efficiency score {{helpTip "What does this score mean? Efficiency is 100 minus the high end of estimated plugin-addressable token savings. The estimate is deterministic: each finding gets a bounded token-impact estimate and a conservative plugin capture range, then totals are capped at 65% to avoid promising perfect recovery."}}</small>
-        </div>
-        <div>
-          <h2>Estimated Waste {{helpTip "How is waste estimated? This is the estimated token range our generated plugin can plausibly help recover. Repeated-read guardrails, retry-loop stops, tool-output caps, context-boundary guidance, and cache hygiene each have bounded capture rates; the range is directional, not provider billing."}}</h2>
-          <p id="waste">{{.Report.EstimatedWaste.Low}}-{{.Report.EstimatedWaste.High}}% avoidable token spend</p>
+        <section class="savings-hero" aria-labelledby="savings-hero-title">
+          <div class="savings-copy">
+          <p class="eyebrow">custom token recovery target</p>
+          <h2 id="savings-hero-title"><span id="savings-percent">{{.Report.EstimatedWaste.Low}}-{{.Report.EstimatedWaste.High}}%</span> less waste, targeted by your custom skills {{helpTip "How is waste estimated? This is the estimated token range our generated plugin can plausibly help recover. Repeated-read guardrails, retry-loop stops, tool-output caps, context-boundary guidance, and cache hygiene each have bounded capture rates; the range is directional, not provider billing."}}</h2>
+          <p id="waste" class="savings-token-range">{{savingsRange .Report.Metrics.EstimatedTokens .Report.EstimatedWaste}} estimated tokens are addressable from the sessions you analyzed.</p>
           <p class="command-note">Analyzed token volume: {{formatTokens .Report.Metrics.EstimatedTokens}} estimated input/output tokens; {{formatTokens .Report.Metrics.ToolOutputTokens}} estimated from tool output. {{helpTip "What is counted here? Accuracy depends on the source log. When native usage fields exist, we use them. Otherwise we estimate roughly one token per four characters. Tool-output volume is derived from tool-result payload size and similar estimates. This is directional, not invoice-grade accounting."}}</p>
-          <p class="capacity-note">Cutting this waste helps the same coding plan produce more useful implementation work before you run out of tokens.</p>
+          <p class="capacity-note">Analyze locally, download the custom skills generated from your own logs, then apply the exact guards for the token leaks Agent Analyzer found.</p>
           <div class="report-cta-row" aria-label="Report actions">
             <a class="report-primary-cta" href="#download-report-section">Download report pack</a>
-            <a class="report-secondary-cta" href="#plugin-purchase">Get my custom plugin</a>
+            <a class="report-secondary-cta" href="#plugin-purchase">Download custom skills</a>
           </div>
-        </div>
+          </div>
+          <div class="score">
+            <span id="score">{{.Report.Score}}</span>
+            <small>efficiency score {{helpTip "What does this score mean? Efficiency is 100 minus the high end of estimated plugin-addressable token savings. The estimate is deterministic: each finding gets a bounded token-impact estimate and a conservative plugin capture range, then totals are capped at 65% to avoid promising perfect recovery."}}</small>
+          </div>
+        </section>
         <div class="problem-section">
           <h2>Top Problems {{helpTip "Why are these bubbles different sizes? Bubble size is estimated plugin-addressable token savings for that finding. Tool-output and cache issues use token fields when available; rereads, retries, and context spikes use bounded count-scaled estimates multiplied by conservative plugin capture rates."}}</h2>
           {{findingsBubbleChart .Report}}
@@ -229,7 +236,7 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
               <li>Output-budgeted command habits.</li>
               <li>No unproven reducer installs.</li>
             </ul>
-            <a class="plugin-cta" href="#plugin-purchase">Get my custom plugin</a>
+            <a class="plugin-cta" href="#plugin-purchase">Download custom skills</a>
           </div>
           <div class="plugin-fixes-card">
             <h3>Copy-ready AGENTS.md lines</h3>
@@ -242,7 +249,7 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
           <h2>Recommended tools to address waste {{helpTip "Why this recommendation? Ranking comes from public allowlisted tool metadata and deterministic signals such as tool-output bloat, retrieval friction, usage visibility, and MCP/skill utilization. Unknown private names are not echoed."}}</h2>
           <p class="section-note">These are not random installs. Telemetry tools are labeled as measurement only, and reducers are recommended only when our repeated runs showed savings for the matching waste signal. Use the generated plugin to turn the report into setup instructions.</p>
           <div class="recommendation-cta-row">
-            <a class="plugin-cta" href="#plugin-purchase">Get my custom plugin</a>
+            <a class="plugin-cta" href="#plugin-purchase">Download custom skills</a>
             <a class="recommendation-allowlist-link" href="/allowed-tools.html">Review vetted allowlist</a>
             <a class="recommendation-allowlist-link" href="/proof/results.html">Review benchmark results</a>
           </div>
