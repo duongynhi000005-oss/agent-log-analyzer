@@ -15,6 +15,7 @@ import argparse
 import collections
 import concurrent.futures
 import datetime as dt
+import hashlib
 import json
 import re
 import sys
@@ -157,6 +158,10 @@ def normalize_email(email: str | None) -> str:
     return (email or "").strip().lower()
 
 
+def hash_email(email: str) -> str:
+    return hashlib.sha256(normalize_email(email).encode("utf-8")).hexdigest()
+
+
 def is_owner_email(email: str, own_emails: set[str], own_domains: set[str]) -> bool:
     email = normalize_email(email)
     if email in own_emails:
@@ -190,6 +195,67 @@ def email_label(email: str, show_emails: bool) -> str:
 
 def counter_top(counter: collections.Counter[str], limit: int = 10) -> list[tuple[str, int]]:
     return counter.most_common(limit)
+
+
+def summarize_delivery_for_hash(
+    email_hash: str,
+    events_by_hash: dict[str, list[dict[str, Any]]],
+    suppressions_by_hash: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    events = events_by_hash.get(email_hash, [])
+    types = collections.Counter(item.get("type") or "unknown" for item in events)
+    details = collections.Counter(item.get("detail") or "" for item in events if item.get("detail"))
+    latest = None
+    latest_type = None
+    latest_detail = None
+    for event in events:
+        created_at = parse_time(event.get("created_at"))
+        if created_at is None:
+            continue
+        if latest is None or created_at >= latest:
+            latest = created_at
+            latest_type = event.get("type") or "unknown"
+            latest_detail = event.get("detail") or ""
+
+    suppression = suppressions_by_hash.get(email_hash)
+    if suppression:
+        status = "provider_rejected" if suppression.get("reason") == "reject" else "suppressed"
+        detail = suppression.get("reason") or latest_detail or ""
+        usable = False
+    elif any(types.get(kind, 0) for kind in ("bounce", "complaint", "reject")):
+        status = "provider_rejected"
+        detail = latest_detail or next(iter(details), "")
+        usable = False
+    elif types.get("send_failure", 0):
+        detail = latest_detail or next(iter(details), "")
+        rejected_details = ("suppressed_recipient", "recipient_rejected", "message_rejected")
+        status = "provider_rejected" if any(part in detail for part in rejected_details) else "delivery_failed"
+        usable = False
+    elif types.get("rendering_failure", 0):
+        status = "delivery_failed"
+        detail = latest_detail or "rendering_failure"
+        usable = False
+    elif types.get("delivery", 0):
+        status = "delivered"
+        detail = latest_detail or ""
+        usable = True
+    elif types.get("send", 0):
+        status = "sent"
+        detail = latest_detail or ""
+        usable = True
+    else:
+        status = "no_delivery_signal"
+        detail = ""
+        usable = True
+
+    return {
+        "delivery_status": status,
+        "delivery_usable": usable,
+        "delivery_detail": detail,
+        "latest_delivery_event_type": latest_type,
+        "latest_delivery_event_at": latest.replace(microsecond=0).isoformat() if latest else None,
+        "delivery_event_counts": counter_top(types, 8),
+    }
 
 
 def summarize_usage(events: list[dict[str, Any]]) -> dict[str, Any]:
@@ -364,25 +430,40 @@ def summarize_emails(
     recent_events = [item for item in email_events if in_window(item.get("created_at"), since)]
     delivery_types = collections.Counter(item.get("type") or "unknown" for item in recent_events)
     delivery_daily = collections.Counter(iso_date(item.get("created_at")) for item in recent_events)
+    events_by_hash: dict[str, list[dict[str, Any]]] = collections.defaultdict(list)
+    for event in recent_events:
+        if event.get("email_hash"):
+            events_by_hash[event["email_hash"]].append(event)
 
     recent_suppressions = [
         item
         for item in suppressions
         if in_window(item.get("updated_at") or item.get("suppressed_at"), since)
     ]
+    suppressions_by_hash = {
+        item["email_hash"]: item for item in recent_suppressions if item.get("email_hash")
+    }
 
     unique_email_marketing = []
     new_email_marketing = []
+    new_usable_email_marketing = []
+    new_rejected_email_marketing = []
     previous_email_marketing = []
     new_email_daily = collections.Counter()
+    new_usable_email_daily = collections.Counter()
+    new_rejected_email_daily = collections.Counter()
+    delivery_statuses = collections.Counter()
     for email in sorted(unique_emails):
         item = by_email[email]
         first_seen_at = item["first_seen_at"]
+        delivery = summarize_delivery_for_hash(hash_email(email), events_by_hash, suppressions_by_hash)
+        delivery_statuses[delivery["delivery_status"]] += 1
         row = {
             "email": email_label(email, show_emails),
             "marketing_opt_in": item["marketing_opt_in"],
             "status": item["status"],
             "first_seen_at": first_seen_at.replace(microsecond=0).isoformat() if first_seen_at else None,
+            **delivery,
         }
         unique_email_marketing.append(row)
         was_in_previous = bool(
@@ -398,6 +479,14 @@ def summarize_emails(
             new_email_marketing.append(row)
             if first_seen_at is not None:
                 new_email_daily[iso_date(first_seen_at.isoformat())] += 1
+                if delivery["delivery_usable"]:
+                    new_usable_email_daily[iso_date(first_seen_at.isoformat())] += 1
+                else:
+                    new_rejected_email_daily[iso_date(first_seen_at.isoformat())] += 1
+            if delivery["delivery_usable"]:
+                new_usable_email_marketing.append(row)
+            else:
+                new_rejected_email_marketing.append(row)
 
     new_basis = []
     if previous_email_labels:
@@ -414,6 +503,7 @@ def summarize_emails(
         "status_counts": counter_top(status, 8),
         "marketing_counts": counter_top(marketing, 4),
         "top_domains": counter_top(domains, 12),
+        "delivery_status_counts": counter_top(delivery_statuses, 8),
         "masked_unique_emails": [mask_email(email) for email in sorted(unique_emails)],
         "masked_unique_email_marketing": [
             {
@@ -427,6 +517,12 @@ def summarize_emails(
         "new_unique_email_marketing": new_email_marketing,
         "new_unique_email_count": len(new_email_marketing),
         "new_unique_email_daily": dict(sorted(new_email_daily.items())),
+        "new_usable_email_marketing": new_usable_email_marketing,
+        "new_usable_email_count": len(new_usable_email_marketing),
+        "new_usable_email_daily": dict(sorted(new_usable_email_daily.items())),
+        "new_rejected_email_marketing": new_rejected_email_marketing,
+        "new_rejected_email_count": len(new_rejected_email_marketing),
+        "new_rejected_email_daily": dict(sorted(new_rejected_email_daily.items())),
         "previous_unique_email_marketing": previous_email_marketing,
         "delivery_hashed": {
             "events": len(recent_events),
@@ -500,11 +596,16 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         | set(product["daily"])
         | set(emails["daily"])
         | set(emails["delivery_hashed"]["daily"])
+        | set(emails["new_unique_email_daily"])
+        | set(emails["new_usable_email_daily"])
+        | set(emails["new_rejected_email_daily"])
     )
     daily = [
         {
             "date": day,
             "new_non_owner_emails": emails["new_unique_email_daily"].get(day, 0),
+            "new_usable_non_owner_emails": emails["new_usable_email_daily"].get(day, 0),
+            "new_rejected_non_owner_emails": emails["new_rejected_email_daily"].get(day, 0),
             "website_requests": usage["daily"].get(day, 0),
             "product_analytics_events": product["daily"].get(day, 0),
             "non_owner_email_unlocks": emails["daily"].get(day, 0),
@@ -536,14 +637,20 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
             "email_unlock_records": emails["total_email_unlock_records"],
             "non_owner_email_unlock_records": emails["non_owner_records"],
             "new_non_owner_emails": emails["new_unique_email_count"],
+            "new_usable_non_owner_emails": emails["new_usable_email_count"],
+            "new_rejected_non_owner_emails": emails["new_rejected_email_count"],
             "owner_email_unlock_records_excluded": emails["owner_records_excluded"],
             "email_delivery_events_hashed": emails["delivery_hashed"]["events"],
             "email_suppressions_hashed": emails["delivery_hashed"]["suppressions"],
         },
         "top_line_metrics": {
-            "new_non_owner_emails": emails["new_unique_email_count"],
+            "new_usable_non_owner_emails": emails["new_usable_email_count"],
+            "new_rejected_non_owner_emails": emails["new_rejected_email_count"],
+            "new_non_owner_email_submissions": emails["new_unique_email_count"],
             "new_email_basis": emails["new_email_basis"],
-            "new_emails": emails["new_unique_email_marketing"],
+            "new_usable_emails": emails["new_usable_email_marketing"],
+            "new_rejected_emails": emails["new_rejected_email_marketing"],
+            "new_email_submissions": emails["new_unique_email_marketing"],
         },
         "website_requests": usage,
         "product_analytics": product,
@@ -571,6 +678,12 @@ def markdown_email_marketing(rows: list[dict[str, Any]]) -> str:
             suffix += f", {status}"
         if first_seen:
             suffix += f", first seen {first_seen}"
+        delivery_status = row.get("delivery_status")
+        if delivery_status:
+            suffix += f", delivery {delivery_status}"
+        delivery_detail = row.get("delivery_detail")
+        if delivery_detail:
+            suffix += f" ({delivery_detail})"
         rendered.append(f"`{row['email']}`{suffix}")
     return ", ".join(rendered)
 
@@ -601,18 +714,21 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "## New Emails",
         "",
-        f"- New non-owner emails: `{emails['new_unique_email_count']:,}`.",
+        f"- New usable emails: `{emails['new_usable_email_count']:,}`.",
+        f"- New rejected/failed submissions: `{emails['new_rejected_email_count']:,}`.",
+        f"- New email submissions: `{emails['new_unique_email_count']:,}`.",
         f"- Basis: {markdown_new_email_basis(emails['new_email_basis'])}.",
-        f"- Emails: {markdown_email_marketing(emails['new_unique_email_marketing'])}.",
+        f"- Usable emails: {markdown_email_marketing(emails['new_usable_email_marketing'])}.",
+        f"- Rejected/failed emails: {markdown_email_marketing(emails['new_rejected_email_marketing'])}.",
         "",
         "## Daily Time Scale",
         "",
-        "| Date | New emails | Website requests | Product analytics events | Non-owner email unlocks | Hashed email delivery events |",
-        "|---|---:|---:|---:|---:|---:|",
+        "| Date | New usable emails | New rejected emails | Website requests | Product analytics events | Non-owner email unlocks | Hashed email delivery events |",
+        "|---|---:|---:|---:|---:|---:|---:|",
     ]
     for row in report["time_scale_daily"]:
         lines.append(
-            "| {date} | {new_non_owner_emails:,} | {website_requests:,} | {product_analytics_events:,} | {non_owner_email_unlocks:,} | {hashed_delivery_events:,} |".format(
+            "| {date} | {new_usable_non_owner_emails:,} | {new_rejected_non_owner_emails:,} | {website_requests:,} | {product_analytics_events:,} | {non_owner_email_unlocks:,} | {hashed_delivery_events:,} |".format(
                 **row
             )
         )
@@ -622,7 +738,7 @@ def render_markdown(report: dict[str, Any]) -> str:
             "",
             "## Coverage",
             "",
-            f"- New non-owner emails: `{coverage['new_non_owner_emails']:,}`.",
+            f"- New usable emails: `{coverage['new_usable_non_owner_emails']:,}`; rejected/failed new submissions: `{coverage['new_rejected_non_owner_emails']:,}`.",
             f"- Website usage: `{coverage['usage_events']:,}` events from `{coverage['usage_first_day']}` to `{coverage['usage_last_day']}`.",
             f"- Product analytics: `{coverage['product_analytics_events']:,}` report events from `{coverage['product_analytics_first_day']}` to `{coverage['product_analytics_last_day']}`.",
             f"- Email unlocks: `{coverage['email_unlock_records']:,}` records; `{coverage['owner_email_unlock_records_excluded']:,}` owner records excluded; `{coverage['non_owner_email_unlock_records']:,}` non-owner records.",
@@ -648,10 +764,12 @@ def render_markdown(report: dict[str, Any]) -> str:
             "",
             "## Emails Not Owner",
             "",
-            f"- New emails: `{emails['new_unique_email_count']:,}`; {markdown_email_marketing(emails['new_unique_email_marketing'])}.",
+            f"- New usable emails: `{emails['new_usable_email_count']:,}`; {markdown_email_marketing(emails['new_usable_email_marketing'])}.",
+            f"- New rejected/failed submissions: `{emails['new_rejected_email_count']:,}`; {markdown_email_marketing(emails['new_rejected_email_marketing'])}.",
             f"- Records: `{emails['non_owner_records']:,}`; unique emails: `{emails['unique_non_owner_emails']:,}`.",
             f"- Status: {markdown_pairs(emails['status_counts'])}.",
             f"- Marketing: {markdown_pairs(emails['marketing_counts'])}.",
+            f"- Delivery status: {markdown_pairs(emails['delivery_status_counts'])}.",
             f"- Domains: {markdown_pairs(emails['top_domains'])}.",
             f"- Masked emails: {', '.join(f'`{email}`' for email in emails['masked_unique_emails']) or '_none_'}.",
             f"- Unique emails with marketing opt-in: {markdown_email_marketing(emails['unique_email_marketing'])}.",
