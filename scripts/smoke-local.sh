@@ -59,7 +59,7 @@ with zipfile.ZipFile("/tmp/agent-analyzer-report-pack.zip") as zf:
         if not zf.read(name).startswith(b"%PDF"):
             raise SystemExit(f"{name} is not a PDF")
     voucher = zf.read("partner-vouchers/spec-kitty-training-voucher.txt").decode("utf-8")
-    if not re.search(r"Code: [A-Z0-9]{6}", voucher) or "20% off Spec Kitty trainings" not in voucher:
+    if not re.search(r"Code: [A-Z0-9]{6}", voucher) or "20% off Spec Kitty training" not in voucher:
         raise SystemExit("voucher is missing code or discount copy")
 PY
 CLIENT_ARTIFACT_API=$(echo "$CLIENT_REPORT_URL" | sed 's#^http://127.0.0.1:8080/r/#/api/public-artifacts/#')/plugin.zip
