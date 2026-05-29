@@ -1846,6 +1846,39 @@ func TestPaidBundleUploadRequiresScanLimitContract(t *testing.T) {
 	}
 }
 
+func TestPaidBundleUploadRejectsTokenReuse(t *testing.T) {
+	store, err := localstore.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := "paid-token-reuse"
+	job := app.Job{
+		ID:                   "job-paid-reuse",
+		Status:               app.StatusUploading,
+		ScanType:             app.ScanTypePaidBundle,
+		MaxUploadBytes:       maxPaidUploadBytes,
+		UploadTokenHash:      tokenHash(token),
+		ReportTokenHash:      tokenHash("report-token"),
+		UploadTokenExpiresAt: time.Now().UTC().Add(15 * time.Minute),
+	}
+	if err := store.CreateUploadSession(job); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, wantStatus := range []int{http.StatusCreated, http.StatusConflict} {
+		req := httptest.NewRequest(http.MethodPut, "/api/paid-uploads/job-paid-reuse?limit=100", bytes.NewReader(testPaidBundle(t)))
+		req.SetPathValue("id", "job-paid-reuse")
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Content-Type", "application/gzip")
+		req.Header.Set("X-Scan-Limit", "100")
+		rec := httptest.NewRecorder()
+		paidBundleUploadHandler(store).ServeHTTP(rec, req)
+		if rec.Code != wantStatus {
+			t.Fatalf("attempt %d expected status %d, got %d: %s", i+1, wantStatus, rec.Code, rec.Body.String())
+		}
+	}
+}
+
 func TestTokenUploadRejectsExpiredToken(t *testing.T) {
 	store, err := localstore.New(t.TempDir())
 	if err != nil {
