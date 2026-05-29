@@ -72,8 +72,10 @@ func buildMux(store app.APIStore) http.Handler {
 	mux.HandleFunc("POST /api/paid-client-reports", createPaidClientReportHandler(store, reportTTL()))
 	mux.HandleFunc("POST /api/email-unlocks", createEmailUnlockHandler(store, emailSender))
 	mux.HandleFunc("POST /api/report-deliveries", createReportDeliveryHandler(store, emailSender))
+	mux.HandleFunc("POST /api/optimization-unlocks", createOptimizationUnlockHandler(store))
 	mux.HandleFunc("POST /api/analytics/cta-copy/{id}", ctaCopyAnalyticsHandler())
 	mux.HandleFunc("GET /email/confirm/{id}/{token}", confirmEmailUnlockHandler(store, emailSender))
+	mux.HandleFunc("GET /optimization-unlock/success", optimizationUnlockSuccessHandler(store))
 	mux.HandleFunc("POST /api/full-scan-client-reports", createFullScanClientReportHandler(store, emailSender, reportTTL()))
 	mux.HandleFunc("PUT /api/uploads/{id}", tokenUploadHandler(store))
 	mux.HandleFunc("POST /api/uploads/{id}/finalize", finalizeTokenUploadHandler(store))
@@ -83,6 +85,7 @@ func buildMux(store app.APIStore) http.Handler {
 	mux.HandleFunc("GET /api/public-reports/{id}/{token}/extended.md", getExtendedReportHandler(store))
 	mux.HandleFunc("GET /api/public-reports/{id}/{token}/download.zip", getExtendedReportHandler(store))
 	mux.HandleFunc("GET /api/public-artifacts/{id}/{token}/plugin.zip", getPublicArtifactHandler(store))
+	mux.HandleFunc("GET /api/paid-artifacts/{id}/{token}/plugin.zip", getPaidArtifactHandler(store))
 	mux.HandleFunc("GET /r/{id}/{token}", reportPageHandler(store))
 	mux.HandleFunc("GET /api/jobs/{id}", getJobHandler(store))
 	mux.HandleFunc("GET /api/admin/usage-stats", usageStatsHandler(store))
@@ -627,6 +630,9 @@ func renderPluginArtifactZip(report analyzer.Report, artifactURL string) ([]byte
 }
 
 func jobAllowsPluginArtifact(job app.Job) bool {
+	if !legacyPublicArtifactsEnabled() {
+		return false
+	}
 	if job.ScanType == app.ScanTypeSingle && job.Status == app.StatusCompleted {
 		return true
 	}
@@ -668,11 +674,17 @@ func sanitizePath(path string) string {
 	if strings.HasPrefix(path, "/api/public-artifacts/") {
 		return "/api/public-artifacts/:id/:token/plugin.zip"
 	}
+	if strings.HasPrefix(path, "/api/paid-artifacts/") {
+		return "/api/paid-artifacts/:id/:token/plugin.zip"
+	}
 	if strings.HasPrefix(path, "/api/email-unlocks") {
 		return "/api/email-unlocks"
 	}
 	if strings.HasPrefix(path, "/api/report-deliveries") {
 		return "/api/report-deliveries"
+	}
+	if strings.HasPrefix(path, "/api/optimization-unlocks") {
+		return "/api/optimization-unlocks"
 	}
 	if strings.HasPrefix(path, "/api/analytics/cta-copy/") {
 		if knownCTACopyID(strings.TrimPrefix(path, "/api/analytics/cta-copy/")) {
@@ -688,6 +700,9 @@ func sanitizePath(path string) string {
 	}
 	if strings.HasPrefix(path, "/email/confirm/") {
 		return "/email/confirm/:id/:token"
+	}
+	if strings.HasPrefix(path, "/optimization-unlock/success") {
+		return "/optimization-unlock/success"
 	}
 	if strings.HasPrefix(path, "/api/jobs/") {
 		return "/api/jobs/:id"
@@ -967,5 +982,10 @@ func maxQueueDepth() int {
 
 func localPaidSessionsEnabled() bool {
 	value := strings.ToLower(os.Getenv("CLAUDE_ANALYZER_ENABLE_LOCAL_PAID_SESSIONS"))
+	return value == "1" || value == "true" || value == "yes"
+}
+
+func legacyPublicArtifactsEnabled() bool {
+	value := strings.ToLower(os.Getenv("CLAUDE_ANALYZER_ENABLE_LEGACY_PUBLIC_ARTIFACTS"))
 	return value == "1" || value == "true" || value == "yes"
 }

@@ -61,3 +61,28 @@ type EmailUnlock struct {
 	ConfirmedAt                  time.Time         `json:"confirmed_at,omitempty"`
 	LastTransactionalEmailSentAt time.Time         `json:"last_transactional_email_sent_at,omitempty"`
 }
+
+type PaymentUnlockStatus string
+
+const (
+	PaymentUnlockPending PaymentUnlockStatus = "pending"
+	PaymentUnlockPaid    PaymentUnlockStatus = "paid"
+)
+
+type PaymentUnlock struct {
+	ID                         string              `json:"id"`
+	StripeSessionID            string              `json:"stripe_session_id"`
+	SourceReportJobID          string              `json:"source_report_job_id"`
+	SourceReportTokenHash      string              `json:"source_report_token_hash"`
+	DownloadTokenHash          string              `json:"download_token_hash,omitempty"`
+	DownloadTokenExpiresAt     time.Time           `json:"download_token_expires_at,omitempty"`
+	AmountCents                int64               `json:"amount_cents"`
+	Currency                   string              `json:"currency"`
+	Status                     PaymentUnlockStatus `json:"status"`
+	CreatedAt                  time.Time           `json:"created_at"`
+	UpdatedAt                  time.Time           `json:"updated_at"`
+	PaidAt                     time.Time           `json:"paid_at,omitempty"`
+	LastStripePaymentStatus     string              `json:"last_stripe_payment_status,omitempty"`
+	LastStripeCheckoutStatus    string              `json:"last_stripe_checkout_status,omitempty"`
+	LastStripeCustomerEmailHash string              `json:"last_stripe_customer_email_hash,omitempty"`
+}

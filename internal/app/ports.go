@@ -54,6 +54,13 @@ type EmailOperationsStore interface {
 	RecordEmailEvent(event EmailDeliveryEvent) error
 }
 
+type PaymentUnlockStore interface {
+	CreatePaymentUnlock(unlock PaymentUnlock) error
+	GetPaymentUnlockByStripeSessionID(sessionID string) (PaymentUnlock, error)
+	GetPaymentUnlockByDownloadTokenHash(tokenHash string) (PaymentUnlock, error)
+	UpdatePaymentUnlock(unlock PaymentUnlock) error
+}
+
 type APIStore interface {
 	UploadStore
 	JobQueue

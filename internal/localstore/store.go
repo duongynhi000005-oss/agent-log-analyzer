@@ -36,12 +36,80 @@ func New(root string) (*Store, error) {
 		filepath.Join(root, "email_unlocks"),
 		filepath.Join(root, "email_events"),
 		filepath.Join(root, "email_suppressions"),
+		filepath.Join(root, "payment_unlocks"),
 	} {
 		if err := os.MkdirAll(dir, 0o700); err != nil {
 			return nil, err
 		}
 	}
 	return &Store{root: root}, nil
+}
+
+func (s *Store) CreatePaymentUnlock(unlock app.PaymentUnlock) error {
+	if !validID(unlock.ID) {
+		return errors.New("invalid payment unlock id")
+	}
+	now := time.Now().UTC()
+	if unlock.CreatedAt.IsZero() {
+		unlock.CreatedAt = now
+	}
+	if unlock.UpdatedAt.IsZero() {
+		unlock.UpdatedAt = now
+	}
+	if unlock.Status == "" {
+		unlock.Status = app.PaymentUnlockPending
+	}
+	return writeJSON(s.paymentUnlockPath(unlock.ID), unlock)
+}
+
+func (s *Store) GetPaymentUnlockByStripeSessionID(sessionID string) (app.PaymentUnlock, error) {
+	var unlock app.PaymentUnlock
+	if strings.TrimSpace(sessionID) == "" {
+		return unlock, os.ErrNotExist
+	}
+	return s.findPaymentUnlock(func(candidate app.PaymentUnlock) bool {
+		return candidate.StripeSessionID == sessionID
+	})
+}
+
+func (s *Store) GetPaymentUnlockByDownloadTokenHash(tokenHash string) (app.PaymentUnlock, error) {
+	var unlock app.PaymentUnlock
+	if tokenHash == "" {
+		return unlock, os.ErrNotExist
+	}
+	return s.findPaymentUnlock(func(candidate app.PaymentUnlock) bool {
+		return candidate.DownloadTokenHash == tokenHash
+	})
+}
+
+func (s *Store) UpdatePaymentUnlock(unlock app.PaymentUnlock) error {
+	if !validID(unlock.ID) {
+		return errors.New("invalid payment unlock id")
+	}
+	unlock.UpdatedAt = time.Now().UTC()
+	return writeJSON(s.paymentUnlockPath(unlock.ID), unlock)
+}
+
+func (s *Store) findPaymentUnlock(matches func(app.PaymentUnlock) bool) (app.PaymentUnlock, error) {
+	var unlock app.PaymentUnlock
+	entries, err := os.ReadDir(filepath.Join(s.root, "payment_unlocks"))
+	if err != nil {
+		return unlock, err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+			continue
+		}
+		var candidate app.PaymentUnlock
+		data, err := os.ReadFile(filepath.Join(s.root, "payment_unlocks", entry.Name()))
+		if err != nil || json.Unmarshal(data, &candidate) != nil {
+			continue
+		}
+		if matches(candidate) {
+			return candidate, nil
+		}
+	}
+	return unlock, os.ErrNotExist
 }
 
 func (s *Store) CreateEmailUnlock(unlock app.EmailUnlock) error {
@@ -458,6 +526,10 @@ func (s *Store) jobPath(status, id string) string {
 
 func (s *Store) emailUnlockPath(id string) string {
 	return filepath.Join(s.root, "email_unlocks", id+".json")
+}
+
+func (s *Store) paymentUnlockPath(id string) string {
+	return filepath.Join(s.root, "payment_unlocks", id+".json")
 }
 
 func (s *Store) emailSuppressionPath(emailHash string) string {

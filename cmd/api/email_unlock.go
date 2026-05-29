@@ -250,11 +250,10 @@ func createFullScanClientReportHandler(store app.APIStore, sender emailSender, e
 		appendAnalyticsIfAvailable(store, analytics.FromReport(report, string(app.ScanTypeFullScan)))
 		reportPath := "/r/" + jobID + "/" + reportToken
 		reportURL := publicBaseURL(r) + reportPath
-		artifactURL := publicBaseURL(r) + "/api/public-artifacts/" + jobID + "/" + reportToken + "/plugin.zip"
 		if err := sender.Send(emailMessage{
 			To:      unlock.Email,
-			Subject: "Your Agent Analyzer optimization plugin is ready",
-			Body:    pluginReadyEmailBody(reportURL, artifactURL),
+			Subject: "Your Agent Analyzer full report is ready",
+			Body:    pluginReadyEmailBody(reportURL),
 		}); err != nil {
 			slogWarnEmailSend(err)
 		}
@@ -392,8 +391,8 @@ func fullScanCommandEmailBody(command string, expiresAt time.Time) string {
 		"It analyzes supported agent logs locally, then uploads only the sanitized aggregate report JSON. Token expires: " + expiresAt.Local().Format(time.RFC1123) + "\n"
 }
 
-func pluginReadyEmailBody(reportURL, artifactURL string) string {
-	return "Your full Agent Analyzer report and generated optimization plugin are ready.\n\nReport:\n" + reportURL + "\n\nPlugin zip:\n" + artifactURL + "\n\nInstall notes:\n- Claude Code: download the zip, run `claude plugin install /path/to/agent-analyzer-optimization-plugin.zip`, then run `/agent-analyzer-status`. Use `claude --plugin-dir` only for a one-session preview.\n- Codex: use harnesses/codex/.\n- OpenCode: use harnesses/opencode/.\n- Cursor: use harnesses/cursor/.\n- Kiro: use harnesses/kiro/.\n- Antigravity: use harnesses/antigravity/.\n- Claude Desktop local/session logs: analyzed automatically; no plugin install surface.\n- Claude Desktop MCP: use harnesses/claude-desktop-mcp/ for connector or .mcpb guidance.\n\nBoth links use the private report token from this run.\n"
+func pluginReadyEmailBody(reportURL string) string {
+	return "Your full Agent Analyzer report is ready.\n\nReport:\n" + reportURL + "\n\nThe free report is enough to understand the quantified waste and anti-patterns. Return to the report page to unlock the $50 optimization pack generated from this analysis when you want installable fixes and deeper customization.\n\nStripe confirmation is required before Agent Analyzer issues the short-lived optimization pack download URL.\n"
 }
 
 func fullScanNPXCommand(baseURL, token string) string {

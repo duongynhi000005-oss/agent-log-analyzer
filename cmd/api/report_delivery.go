@@ -61,12 +61,6 @@ func createReportDeliveryHandler(store app.APIStore, sender emailSender) http.Ha
 			return
 		}
 		reportURL := publicBaseURL(r) + "/api/public-reports/" + job.ID + "/" + request.SourceReportToken + "/download.zip"
-		artifactURL := publicBaseURL(r) + "/api/public-artifacts/" + job.ID + "/" + request.SourceReportToken + "/plugin.zip"
-		pluginZip, err := renderPluginArtifactZip(report, artifactURL)
-		if err != nil {
-			writeErrorOrHTML(w, r, http.StatusInternalServerError, "could not generate plugin")
-			return
-		}
 		now := time.Now().UTC()
 		delivery := app.EmailUnlock{
 			ID:                           app.NewJobID(),
@@ -86,18 +80,13 @@ func createReportDeliveryHandler(store app.APIStore, sender emailSender) http.Ha
 		}
 		message := emailMessage{
 			To:      normalized,
-			Subject: "Your Agent Analyzer report pack and plugin",
-			Body:    reportDeliveryEmailBody(reportURL, artifactURL),
+			Subject: "Your Agent Analyzer report pack",
+			Body:    reportDeliveryEmailBody(reportURL),
 			Attachments: []emailAttachment{
 				{
 					Filename:    "agent-analyzer-report-pack.zip",
 					ContentType: "application/zip",
 					Data:        reportPack,
-				},
-				{
-					Filename:    "agent-analyzer-optimization-plugin.zip",
-					ContentType: "application/zip",
-					Data:        pluginZip,
 				},
 			},
 		}
@@ -112,15 +101,14 @@ func createReportDeliveryHandler(store app.APIStore, sender emailSender) http.Ha
 		}
 		slog.Info("report delivery sent", "delivery_id", delivery.ID, "email_hash", delivery.EmailHash, "marketing_opt_in", delivery.MarketingOptIn)
 		if wantsHTML(r) {
-			renderReportDeliverySentPage(w, normalized, reportURL, artifactURL)
+			renderReportDeliverySentPage(w, normalized, reportURL)
 			return
 		}
 		writeJSON(w, http.StatusAccepted, reportDeliveryResponse{
 			DeliveryID: delivery.ID,
 			Status:     string(delivery.Status),
-			Message:    "report pack and plugin sent",
+			Message:    "report pack sent",
 			ReportURL:  reportURL,
-			PluginURL:  artifactURL,
 		})
 	}
 }
@@ -162,78 +150,39 @@ func isJSONRequest(r *http.Request) bool {
 	return strings.Contains(strings.ToLower(r.Header.Get("Content-Type")), "application/json")
 }
 
-func renderReportDeliverySentPage(w http.ResponseWriter, email, reportURL, artifactURL string) {
-	command := `PLUGIN_ZIP="/path/to/agent-analyzer-optimization-plugin.zip"
-claude plugin install "$PLUGIN_ZIP"`
-	escapedCommand := htmlstd.EscapeString(command)
+func renderReportDeliverySentPage(w http.ResponseWriter, email, reportURL string) {
 	body := fmt.Sprintf(
-		`<p>We recorded <strong>%s</strong> and sent the free report pack and custom plugin links to that address.</p><p class="download-button-row"><a class="plugin-cta" href="%s">Download report pack</a><a class="plugin-cta" href="%s">Download custom plugin</a></p><p>The email also reminds you about the Spec Kitty training voucher and links to the <a href="https://github.com/Priivacy-ai/spec-kitty" rel="noopener noreferrer">Spec Kitty GitHub repo</a>.</p><p>Choose your harness in <strong>INSTALL.md</strong> inside the plugin zip. For Claude Code, install it persistently, then run <strong>/agent-analyzer-status</strong> so you can see it working:</p><div class="simple-command-copy"><pre><code>%s</code></pre><button type="button" class="copy-agents-line" data-copy="%s">Copy command</button></div><p>Use <strong>claude --plugin-dir "$PLUGIN_ZIP"</strong> only for a one-session preview. For other harnesses, use the matching folder instead of installing the Claude Code plugin: Codex uses <strong>harnesses/codex/</strong>, OpenCode uses <strong>harnesses/opencode/</strong>, Cursor uses <strong>harnesses/cursor/</strong>, Kiro uses <strong>harnesses/kiro/</strong>, Antigravity uses <strong>harnesses/antigravity/</strong>, and Claude Desktop MCP uses <strong>harnesses/claude-desktop-mcp/</strong>. Claude Desktop local/session logs are analyzed automatically; Desktop remediation currently uses the MCP/connector guidance. The plugin was generated from sanitized report JSON only. Raw transcripts were not attached or uploaded.</p>`,
+		`<p>We recorded <strong>%s</strong> and sent the free report pack to that address.</p><p class="download-button-row"><a class="plugin-cta" href="%s">Download report pack</a></p><p>The email also reminds you about the Spec Kitty training voucher and links to the <a href="https://github.com/Priivacy-ai/spec-kitty" rel="noopener noreferrer">Spec Kitty GitHub repo</a>.</p><p>The free report is enough to understand the quantified waste and anti-patterns. The installable optimization pack is unlocked from the report page after Stripe confirms payment.</p>`,
 		htmlstd.EscapeString(email),
 		htmlstd.EscapeString(reportURL),
-		htmlstd.EscapeString(artifactURL),
-		escapedCommand,
-		escapedCommand,
 	)
 	renderSimpleHTML(w, "Report pack sent", body)
 }
 
-func reportDeliveryEmailBody(reportURL, artifactURL string) string {
-	return fmt.Sprintf(`Your Agent Analyzer report pack and custom optimization plugin are ready.
+func reportDeliveryEmailBody(reportURL string) string {
+	return fmt.Sprintf(`Your Agent Analyzer report pack is ready.
 
-The safe local scan found token leaks in your own coding logs. The attached plugin was generated from that sanitized report, so it targets the rereads, retries, context bloat, and noisy tool output found in your sessions instead of giving you a generic checklist.
+The safe local scan found token leaks in your own coding logs. The free report pack is enough to understand the quantified waste and recognizable anti-patterns.
 
-Download links:
+Download:
 - Report pack: %s
-- Generated optimization plugin: %s
 
-Attachments:
+Attachment:
 - agent-analyzer-report-pack.zip: branded PDF guide, personalized PDF report, sanitized report JSON, plugin preview, and partner voucher.
-- agent-analyzer-optimization-plugin.zip: generated Claude Code optimization plugin plus harness-specific rule/skill/steering files for this report.
+
+Paid optimization pack:
+- Return to your private report page to unlock the installable optimization pack generated from your analysis.
+- It includes deterministic hooks, context compression helpers, slash-command coach guidance, CLAUDE.md optimizer recommendations, retrieval recommendations, and statusline telemetry.
+- Stripe confirmation is required before the installable artifact URL is issued.
 
 Spec Kitty training voucher:
 - Your report pack includes the partner training voucher.
 - Spec Kitty Teamspace is coming soon for teams that want shared agentic coding workflows.
 - Spec Kitty GitHub repo: https://github.com/Priivacy-ai/spec-kitty
 
-Choose your harness:
-
-Claude Code:
-1. Save agent-analyzer-optimization-plugin.zip somewhere local.
-2. Install it persistently:
-
-   PLUGIN_ZIP="/path/to/agent-analyzer-optimization-plugin.zip"
-   claude plugin install "$PLUGIN_ZIP"
-
-3. Open Claude Code and run /agent-analyzer-status so you can see the custom guidance is active.
-4. Ask Claude Code to explain what the plugin installs before approving any recommended tool setup.
-
-Temporary preview only:
-- claude --plugin-dir "$PLUGIN_ZIP"
-
-Codex:
-- Merge harnesses/codex/AGENTS-snippet.md into AGENTS.md.
-- Optionally copy harnesses/codex/.agents/skills/agent-analyzer-token-hygiene/ into your repo's .agents/skills/ folder.
-
-OpenCode:
-- Merge harnesses/opencode/AGENTS.md into AGENTS.md.
-- Copy harnesses/opencode/.opencode/commands/agent-analyzer-review.md into .opencode/commands/.
-
-Cursor:
-- Copy harnesses/cursor/.cursor/rules/agent-analyzer-token-hygiene.mdc into .cursor/rules/.
-
-Kiro:
-- Copy harnesses/kiro/.kiro/steering/agent-analyzer-token-hygiene.md into .kiro/steering/.
-
-Google Antigravity:
-- Copy harnesses/antigravity/.agents/rules/agent-analyzer-token-hygiene.md into .agents/rules/.
-
-Claude Desktop MCP:
-- Read harnesses/claude-desktop-mcp/README.md. Desktop uses connectors or .mcpb extensions, not Claude Code plugin zips.
-- Claude Desktop local/session logs are analyzed automatically; there is no separate plugin install surface for those logs.
-
 Privacy boundary:
 - Raw transcripts were not attached.
 - Raw transcripts were not uploaded to Agent Analyzer.
-- These attachments were generated from the sanitized report JSON for your private report link.
-`, reportURL, artifactURL)
+- This attachment was generated from the sanitized report JSON for your private report link.
+`, reportURL)
 }

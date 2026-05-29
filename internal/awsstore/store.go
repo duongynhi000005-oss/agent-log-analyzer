@@ -391,6 +391,58 @@ func (s *Store) CreateEmailUnlock(unlock app.EmailUnlock) error {
 	return s.putEmailUnlock(unlock)
 }
 
+func (s *Store) CreatePaymentUnlock(unlock app.PaymentUnlock) error {
+	now := time.Now().UTC()
+	if unlock.CreatedAt.IsZero() {
+		unlock.CreatedAt = now
+	}
+	if unlock.UpdatedAt.IsZero() {
+		unlock.UpdatedAt = now
+	}
+	if unlock.Status == "" {
+		unlock.Status = app.PaymentUnlockPending
+	}
+	return s.putPaymentUnlock(unlock)
+}
+
+func (s *Store) GetPaymentUnlockByStripeSessionID(sessionID string) (app.PaymentUnlock, error) {
+	if strings.TrimSpace(sessionID) == "" {
+		return app.PaymentUnlock{}, os.ErrNotExist
+	}
+	return s.scanPaymentUnlock("stripe_session_id = :value", sessionID)
+}
+
+func (s *Store) GetPaymentUnlockByDownloadTokenHash(tokenHash string) (app.PaymentUnlock, error) {
+	if tokenHash == "" {
+		return app.PaymentUnlock{}, os.ErrNotExist
+	}
+	return s.scanPaymentUnlock("download_token_hash = :value", tokenHash)
+}
+
+func (s *Store) UpdatePaymentUnlock(unlock app.PaymentUnlock) error {
+	unlock.UpdatedAt = time.Now().UTC()
+	return s.putPaymentUnlock(unlock)
+}
+
+func (s *Store) scanPaymentUnlock(filter, value string) (app.PaymentUnlock, error) {
+	output, err := s.dynamodb.Scan(context.Background(), &dynamodb.ScanInput{
+		TableName:        aws.String(s.jobTable),
+		FilterExpression: aws.String("record_type = :record_type AND " + filter),
+		ExpressionAttributeValues: map[string]dynamodbtypes.AttributeValue{
+			":record_type": &dynamodbtypes.AttributeValueMemberS{Value: "payment_unlock"},
+			":value":       &dynamodbtypes.AttributeValueMemberS{Value: value},
+		},
+		Limit: aws.Int32(1),
+	})
+	if err != nil {
+		return app.PaymentUnlock{}, err
+	}
+	if len(output.Items) == 0 {
+		return app.PaymentUnlock{}, os.ErrNotExist
+	}
+	return paymentUnlockFromItem(output.Items[0])
+}
+
 func (s *Store) GetEmailUnlock(id string) (app.EmailUnlock, error) {
 	output, err := s.dynamodb.GetItem(context.Background(), &dynamodb.GetItemInput{
 		TableName: aws.String(s.jobTable),
@@ -732,6 +784,42 @@ func (s *Store) putEmailUnlock(unlock app.EmailUnlock) error {
 	return err
 }
 
+func (s *Store) putPaymentUnlock(unlock app.PaymentUnlock) error {
+	item := map[string]dynamodbtypes.AttributeValue{
+		"id":                         &dynamodbtypes.AttributeValueMemberS{Value: unlock.ID},
+		"record_type":                &dynamodbtypes.AttributeValueMemberS{Value: "payment_unlock"},
+		"stripe_session_id":          &dynamodbtypes.AttributeValueMemberS{Value: unlock.StripeSessionID},
+		"source_report_job_id":       &dynamodbtypes.AttributeValueMemberS{Value: unlock.SourceReportJobID},
+		"source_report_token_hash":   &dynamodbtypes.AttributeValueMemberS{Value: unlock.SourceReportTokenHash},
+		"amount_cents":               &dynamodbtypes.AttributeValueMemberN{Value: strconv.FormatInt(unlock.AmountCents, 10)},
+		"currency":                   &dynamodbtypes.AttributeValueMemberS{Value: unlock.Currency},
+		"status":                     &dynamodbtypes.AttributeValueMemberS{Value: string(unlock.Status)},
+		"created_at":                 &dynamodbtypes.AttributeValueMemberS{Value: unlock.CreatedAt.Format(time.RFC3339Nano)},
+		"updated_at":                 &dynamodbtypes.AttributeValueMemberS{Value: unlock.UpdatedAt.Format(time.RFC3339Nano)},
+		"last_stripe_payment_status": &dynamodbtypes.AttributeValueMemberS{Value: unlock.LastStripePaymentStatus},
+		"last_stripe_checkout_status": &dynamodbtypes.AttributeValueMemberS{
+			Value: unlock.LastStripeCheckoutStatus,
+		},
+	}
+	if unlock.DownloadTokenHash != "" {
+		item["download_token_hash"] = &dynamodbtypes.AttributeValueMemberS{Value: unlock.DownloadTokenHash}
+	}
+	if !unlock.DownloadTokenExpiresAt.IsZero() {
+		item["download_token_expires_at"] = &dynamodbtypes.AttributeValueMemberS{Value: unlock.DownloadTokenExpiresAt.Format(time.RFC3339Nano)}
+	}
+	if !unlock.PaidAt.IsZero() {
+		item["paid_at"] = &dynamodbtypes.AttributeValueMemberS{Value: unlock.PaidAt.Format(time.RFC3339Nano)}
+	}
+	if unlock.LastStripeCustomerEmailHash != "" {
+		item["last_stripe_customer_email_hash"] = &dynamodbtypes.AttributeValueMemberS{Value: unlock.LastStripeCustomerEmailHash}
+	}
+	_, err := s.dynamodb.PutItem(context.Background(), &dynamodb.PutItemInput{
+		TableName: aws.String(s.jobTable),
+		Item:      item,
+	})
+	return err
+}
+
 func (s *Store) putEmailEvent(event app.EmailDeliveryEvent) error {
 	item := map[string]dynamodbtypes.AttributeValue{
 		"id":          &dynamodbtypes.AttributeValueMemberS{Value: "email_event#" + event.ID},
@@ -863,6 +951,37 @@ func emailUnlockFromItem(item map[string]dynamodbtypes.AttributeValue) (app.Emai
 		return unlock, err
 	}
 	unlock.LastTransactionalEmailSentAt, err = parseTimeAttr(item, "last_transactional_email_sent_at")
+	return unlock, err
+}
+
+func paymentUnlockFromItem(item map[string]dynamodbtypes.AttributeValue) (app.PaymentUnlock, error) {
+	unlock := app.PaymentUnlock{
+		ID:                         stringAttr(item, "id"),
+		StripeSessionID:            stringAttr(item, "stripe_session_id"),
+		SourceReportJobID:          stringAttr(item, "source_report_job_id"),
+		SourceReportTokenHash:      stringAttr(item, "source_report_token_hash"),
+		DownloadTokenHash:          stringAttr(item, "download_token_hash"),
+		AmountCents:                int64Attr(item, "amount_cents"),
+		Currency:                   stringAttr(item, "currency"),
+		Status:                     app.PaymentUnlockStatus(stringAttr(item, "status")),
+		LastStripePaymentStatus:     stringAttr(item, "last_stripe_payment_status"),
+		LastStripeCheckoutStatus:    stringAttr(item, "last_stripe_checkout_status"),
+		LastStripeCustomerEmailHash: stringAttr(item, "last_stripe_customer_email_hash"),
+	}
+	var err error
+	unlock.CreatedAt, err = parseTimeAttr(item, "created_at")
+	if err != nil {
+		return unlock, err
+	}
+	unlock.UpdatedAt, err = parseTimeAttr(item, "updated_at")
+	if err != nil {
+		return unlock, err
+	}
+	unlock.DownloadTokenExpiresAt, err = parseTimeAttr(item, "download_token_expires_at")
+	if err != nil {
+		return unlock, err
+	}
+	unlock.PaidAt, err = parseTimeAttr(item, "paid_at")
 	return unlock, err
 }
 

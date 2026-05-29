@@ -203,6 +203,8 @@ func authSurface(path string) string {
 		return "upload_token"
 	case strings.HasPrefix(path, "/api/public-reports/"), strings.HasPrefix(path, "/api/public-artifacts/"), strings.HasPrefix(path, "/r/"):
 		return "report_token"
+	case strings.HasPrefix(path, "/api/paid-artifacts/"):
+		return "paid_artifact_token"
 	case strings.HasPrefix(path, "/email/confirm/"):
 		return "email_confirmation_token"
 	default:

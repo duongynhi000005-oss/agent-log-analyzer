@@ -1728,7 +1728,7 @@ function updateReportDownloadLinks(activeRoute) {
     extended.href = `${window.location.origin}/api/public-reports/${activeRoute.jobID}/${activeRoute.token}/download.zip`;
   }
   if (plugin) {
-    plugin.href = `${window.location.origin}/api/public-artifacts/${activeRoute.jobID}/${activeRoute.token}/plugin.zip`;
+    plugin.removeAttribute("href");
   }
   if (jobIDInput) {
     jobIDInput.value = activeRoute.jobID;

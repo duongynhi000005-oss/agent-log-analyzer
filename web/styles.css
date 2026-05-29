@@ -2054,6 +2054,16 @@ pre {
   min-width: 0;
 }
 
+.payment-return-message {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 204, 102, 0.42);
+  border-radius: 8px;
+  background: rgba(255, 204, 102, 0.1);
+  color: var(--text);
+  line-height: 1.4;
+}
+
 .email-unlock-form {
   max-width: 100%;
   margin-top: 0;
