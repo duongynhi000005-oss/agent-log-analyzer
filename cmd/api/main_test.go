@@ -10,9 +10,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -155,6 +157,8 @@ func TestSanitizePathRedactsDynamicIDs(t *testing.T) {
 		"/api/public-reports/job-1234567890/token-secret/extended.md",
 		"/api/public-reports/job-1234567890/token-secret/download.zip",
 		"/api/public-artifacts/job-1234567890/token-secret/plugin.zip",
+		"/api/paid-artifacts/job-1234567890/token-secret/cs_test_secret/plugin.zip",
+		"/optimization-unlock/success?session_id=cs_test_secret",
 		"/api/report-deliveries",
 		"/api/jobs/job-1234567890",
 		"/r/job-1234567890/token-secret",
@@ -166,7 +170,7 @@ func TestSanitizePathRedactsDynamicIDs(t *testing.T) {
 	}
 }
 
-func TestReportDeliveryEmailsReportPackAndPluginAttachments(t *testing.T) {
+func TestReportDeliveryEmailsReportPackOnly(t *testing.T) {
 	store, err := localstore.New(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -213,7 +217,7 @@ func TestReportDeliveryEmailsReportPackAndPluginAttachments(t *testing.T) {
 		t.Fatalf("response is not valid JSON: %v", err)
 	}
 	if response.ReportURL != "http://example.test/api/public-reports/job-source-1234/source-token/download.zip" ||
-		response.PluginURL != "http://example.test/api/public-artifacts/job-source-1234/source-token/plugin.zip" {
+		response.PluginURL != "" {
 		t.Fatalf("unexpected download URLs in response: %#v", response)
 	}
 	unlock, err := store.GetEmailUnlock(response.DeliveryID)
@@ -229,21 +233,18 @@ func TestReportDeliveryEmailsReportPackAndPluginAttachments(t *testing.T) {
 	message := sender.messages[0]
 	if message.To != "dev@example.com" ||
 		!strings.Contains(message.Body, "Report pack: http://example.test/api/public-reports/job-source-1234/source-token/download.zip") ||
-		!strings.Contains(message.Body, "Generated optimization plugin: http://example.test/api/public-artifacts/job-source-1234/source-token/plugin.zip") ||
+		!strings.Contains(message.Body, "One-time $50 optimization pack unlock: http://example.test/r/job-source-1234/source-token#plugin-purchase") ||
 		!strings.Contains(message.Body, "Spec Kitty training voucher") ||
 		!strings.Contains(message.Body, "https://github.com/Priivacy-ai/spec-kitty") ||
-		!strings.Contains(message.Body, "Choose your harness") ||
-		!strings.Contains(message.Body, "claude plugin install") ||
-		!strings.Contains(message.Body, "/agent-analyzer-status") ||
-		!strings.Contains(message.Body, "harnesses/codex/AGENTS-snippet.md") ||
-		!strings.Contains(message.Body, "harnesses/claude-desktop-mcp/README.md") ||
+		!strings.Contains(message.Body, "Deterministic hook pack") ||
+		!strings.Contains(message.Body, "Statusline telemetry") ||
 		!strings.Contains(message.Body, "Raw transcripts were not uploaded") {
 		t.Fatalf("unexpected delivery email: %#v", message)
 	}
-	if len(message.Attachments) != 2 {
-		t.Fatalf("expected report pack and plugin attachments, got %#v", message.Attachments)
+	if len(message.Attachments) != 1 {
+		t.Fatalf("expected only report pack attachment, got %#v", message.Attachments)
 	}
-	if message.Attachments[0].Filename != "agent-analyzer-report-pack.zip" || message.Attachments[1].Filename != "agent-analyzer-optimization-plugin.zip" {
+	if message.Attachments[0].Filename != "agent-analyzer-report-pack.zip" {
 		t.Fatalf("unexpected attachment filenames: %#v", message.Attachments)
 	}
 	for _, attachment := range message.Attachments {
@@ -409,7 +410,7 @@ func TestAdminEmailUnlocksEndpointReturnsProjectedEmailRecords(t *testing.T) {
 	}
 }
 
-func TestGetPublicArtifactReturnsPluginZipForSingleScan(t *testing.T) {
+func TestGetPublicArtifactRejectsSingleScanWithoutPayment(t *testing.T) {
 	store := fakeStore{
 		job: app.Job{
 			ID:              "job-1234567890",
@@ -426,11 +427,172 @@ func TestGetPublicArtifactReturnsPluginZipForSingleScan(t *testing.T) {
 
 	getPublicArtifactHandler(store).ServeHTTP(rec, req)
 
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden status, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestOptimizationCheckoutCreatesStripeSession(t *testing.T) {
+	stripe := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/checkout/sessions" {
+			t.Fatalf("unexpected stripe request %s %s", r.Method, r.URL.Path)
+		}
+		user, _, ok := r.BasicAuth()
+		if !ok || user != "sk_test_local" {
+			t.Fatalf("stripe request missing basic auth")
+		}
+		if err := r.ParseForm(); err != nil {
+			t.Fatal(err)
+		}
+		if r.Form.Get("mode") != "payment" ||
+			r.Form.Get("line_items[0][price_data][unit_amount]") != "5000" ||
+			r.Form.Get("success_url") != "http://example.test/optimization-unlock/success?session_id={CHECKOUT_SESSION_ID}" ||
+			r.Form.Get("cancel_url") != "http://example.test/r/job-1234567890/report-token#plugin-purchase" ||
+			r.Form.Get("metadata[report_token]") != "report-token" ||
+			r.Form.Get("client_reference_id") != "job-1234567890" {
+			t.Fatalf("unexpected stripe form: %#v", r.Form)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"cs_test_123","url":"https://checkout.stripe.test/session","payment_status":"unpaid","client_reference_id":"job-1234567890","metadata":{"report_token":"report-token"}}`))
+	}))
+	defer stripe.Close()
+	t.Setenv("STRIPE_SECRET_KEY", "sk_test_local")
+	t.Setenv("STRIPE_API_BASE", stripe.URL)
+	store := fakeStore{
+		job: app.Job{
+			ID:              "job-1234567890",
+			Status:          app.StatusCompleted,
+			ScanType:        app.ScanTypeSingle,
+			ReportTokenHash: tokenHash("report-token"),
+		},
+		report: analyzer.Report{JobID: "job-1234567890", Version: "test"},
+	}
+	form := url.Values{"source_report_job_id": {"job-1234567890"}, "source_report_token": {"report-token"}}
+	req := httptest.NewRequest(http.MethodPost, "/api/optimization-checkouts", strings.NewReader(form.Encode()))
+	req.Host = "example.test"
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	createOptimizationCheckoutHandler(store).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("expected checkout redirect, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if got := rec.Header().Get("Location"); got != "https://checkout.stripe.test/session" {
+		t.Fatalf("unexpected checkout redirect: %q", got)
+	}
+}
+
+func TestPaidArtifactRequiresPaidStripeSession(t *testing.T) {
+	created := time.Now().UTC().Unix()
+	stripe := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/checkout/sessions/cs_paid_123" {
+			t.Fatalf("unexpected stripe request %s %s", r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"id":"cs_paid_123","payment_status":"paid","created":%d,"client_reference_id":"job-1234567890","metadata":{"report_token":"report-token"}}`, created)))
+	}))
+	defer stripe.Close()
+	t.Setenv("STRIPE_SECRET_KEY", "sk_test_local")
+	t.Setenv("STRIPE_API_BASE", stripe.URL)
+	store := fakeStore{
+		job: app.Job{
+			ID:              "job-1234567890",
+			Status:          app.StatusCompleted,
+			ScanType:        app.ScanTypeSingle,
+			ReportTokenHash: tokenHash("report-token"),
+		},
+		report: analyzer.Report{JobID: "job-1234567890", Version: "test"},
+	}
+	req := httptest.NewRequest(http.MethodGet, "/api/paid-artifacts/job-1234567890/report-token/cs_paid_123/plugin.zip", nil)
+	req.Host = "example.test"
+	req.SetPathValue("id", "job-1234567890")
+	req.SetPathValue("token", "report-token")
+	req.SetPathValue("session", "cs_paid_123")
+	rec := httptest.NewRecorder()
+
+	getPaidArtifactHandler(store).ServeHTTP(rec, req)
+
 	if rec.Code != http.StatusOK {
-		t.Fatalf("expected plugin zip status, got %d: %s", rec.Code, rec.Body.String())
+		t.Fatalf("expected paid plugin zip status 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if !bytes.HasPrefix(rec.Body.Bytes(), []byte("PK")) {
 		t.Fatalf("expected zip response, got %q", rec.Body.String())
+	}
+}
+
+func TestOptimizationUnlockSuccessShowsPaymentConfirmedDownload(t *testing.T) {
+	created := time.Now().UTC().Unix()
+	stripe := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/checkout/sessions/cs_paid_123" {
+			t.Fatalf("unexpected stripe request %s %s", r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"id":"cs_paid_123","payment_status":"paid","created":%d,"client_reference_id":"job-1234567890","metadata":{"report_token":"report-token"}}`, created)))
+	}))
+	defer stripe.Close()
+	t.Setenv("STRIPE_SECRET_KEY", "sk_test_local")
+	t.Setenv("STRIPE_API_BASE", stripe.URL)
+	store := fakeStore{
+		job: app.Job{
+			ID:              "job-1234567890",
+			Status:          app.StatusCompleted,
+			ScanType:        app.ScanTypeSingle,
+			ReportTokenHash: tokenHash("report-token"),
+		},
+		report: analyzer.Report{JobID: "job-1234567890", Version: "test"},
+	}
+	req := httptest.NewRequest(http.MethodGet, "/optimization-unlock/success?session_id=cs_paid_123", nil)
+	req.Host = "example.test"
+	rec := httptest.NewRecorder()
+
+	optimizationUnlockSuccessHandler(store).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected success page status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	for _, want := range []string{
+		"Optimization pack unlocked",
+		"Your one-time $50 payment is confirmed.",
+		"/api/paid-artifacts/job-1234567890/report-token/cs_paid_123/plugin.zip",
+		"claude plugin install",
+		"/agent-analyzer-status",
+		"checkout-session download page expires after 24 hours",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("success page missing %q in body:\n%s", want, body)
+		}
+	}
+}
+
+func TestPaidArtifactRejectsUnpaidStripeSession(t *testing.T) {
+	stripe := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"cs_unpaid_123","payment_status":"unpaid","client_reference_id":"job-1234567890","metadata":{"report_token":"report-token"}}`))
+	}))
+	defer stripe.Close()
+	t.Setenv("STRIPE_SECRET_KEY", "sk_test_local")
+	t.Setenv("STRIPE_API_BASE", stripe.URL)
+	store := fakeStore{
+		job: app.Job{
+			ID:              "job-1234567890",
+			Status:          app.StatusCompleted,
+			ScanType:        app.ScanTypeSingle,
+			ReportTokenHash: tokenHash("report-token"),
+		},
+		report: analyzer.Report{JobID: "job-1234567890", Version: "test"},
+	}
+	req := httptest.NewRequest(http.MethodGet, "/api/paid-artifacts/job-1234567890/report-token/cs_unpaid_123/plugin.zip", nil)
+	req.SetPathValue("id", "job-1234567890")
+	req.SetPathValue("token", "report-token")
+	req.SetPathValue("session", "cs_unpaid_123")
+	rec := httptest.NewRecorder()
+
+	getPaidArtifactHandler(store).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusPaymentRequired {
+		t.Fatalf("expected payment required status, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -760,13 +922,13 @@ func TestReportPageServerRendersCompletedReport(t *testing.T) {
 		"42",
 		"Large shell/tool output overhead",
 		"Cap noisy command output",
-		"Download custom skills",
+		"Unlock optimization pack",
 		"Download report pack",
-		"Download the report pack and your custom plugin for free",
-		"Email required: enter it once to unlock both downloads and receive the links.",
-		"Email for report pack + generated plugin",
+		"Download the free report pack. Unlock installable fixes when you are ready.",
+		"Paid artifact links are created only after Stripe confirms payment.",
+		"Email for free report pack",
 		"upcoming Spec Kitty Teamspace launch",
-		"Unlock my custom plugin",
+		"Unlock optimization pack - $50",
 		"0 model tokens used to generate this report.",
 		"Model tokens for report",
 		"Copy line",
@@ -841,13 +1003,13 @@ func TestReportPageRendersRealReportFixtures(t *testing.T) {
 			body := rec.Body.String()
 			for _, want := range append(tc.wantLabels,
 				"Download report pack",
-				"Email for report pack + generated plugin",
-				"Unlock my custom plugin",
+				"Email for free report pack",
+				"Unlock optimization pack - $50",
 				"Security Receipt",
 				"Raw log TTL: not uploaded",
 				"0 model tokens used to generate this report.",
-				"benchmark-backed operating guidance",
-				"No unproven reducer installs",
+				"installable Claude Code guidance",
+				"Statusline telemetry",
 			) {
 				if !strings.Contains(body, want) {
 					t.Fatalf("fixture-rendered report missing %q", want)

@@ -155,7 +155,7 @@ async function pollReport(jobID, token) {
 
 function renderReport(report) {
   document.querySelector("#report-status").innerHTML =
-    '<a href="#download-report-section">Download your custom skills and save tokens now.</a>';
+    '<a href="#download-report-section">Download your free report pack or unlock installable fixes.</a>';
   document.querySelector("#score").textContent = report.score;
   const wasteRange = normalizeWasteRange(report.estimated_waste_pct);
   document.querySelector("#savings-percent").textContent = `${wasteRange.low}-${wasteRange.high}%`;
@@ -211,7 +211,7 @@ function renderActionPlan(report) {
   item.className = "action-item";
   item.innerHTML = [
     "<strong>No urgent manual fix detected.</strong>",
-    "<span>Download the report pack or use the generated plugin if you want these rules packaged for future sessions.</span>",
+    "<span>Download the report pack or unlock the optimization pack if you want these rules packaged for future sessions.</span>",
   ].join("");
   fixes.appendChild(item);
 }
@@ -1721,8 +1721,8 @@ function renderPluginDownloadPreview() {
 function updateReportDownloadLinks(activeRoute) {
   const extended = document.querySelector("#extended-report-link");
   const plugin = document.querySelector("#plugin-download-link");
-  const jobIDInput = document.querySelector('input[name="source_report_job_id"]');
-  const tokenInput = document.querySelector('input[name="source_report_token"]');
+  const jobIDInputs = document.querySelectorAll('input[name="source_report_job_id"]');
+  const tokenInputs = document.querySelectorAll('input[name="source_report_token"]');
   if (!activeRoute) return;
   if (extended) {
     extended.href = `${window.location.origin}/api/public-reports/${activeRoute.jobID}/${activeRoute.token}/download.zip`;
@@ -1730,12 +1730,12 @@ function updateReportDownloadLinks(activeRoute) {
   if (plugin) {
     plugin.href = `${window.location.origin}/api/public-artifacts/${activeRoute.jobID}/${activeRoute.token}/plugin.zip`;
   }
-  if (jobIDInput) {
-    jobIDInput.value = activeRoute.jobID;
-  }
-  if (tokenInput) {
-    tokenInput.value = activeRoute.token;
-  }
+  jobIDInputs.forEach((input) => {
+    input.value = activeRoute.jobID;
+  });
+  tokenInputs.forEach((input) => {
+    input.value = activeRoute.token;
+  });
 }
 
 function parseReportRoute() {

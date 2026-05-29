@@ -62,7 +62,7 @@ func reportPageHandler(store app.APIStore) http.HandlerFunc {
 			Job:               job,
 			ArtifactURL:       artifactURL,
 			ExtendedReportURL: extendedURL,
-			StatusText:        "Download your custom skills and save tokens now.",
+			StatusText:        "Download your free report pack or unlock installable fixes.",
 			ReportToken:       r.PathValue("token"),
 		})
 	}
@@ -157,13 +157,13 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
         <section class="savings-hero" aria-labelledby="savings-hero-title">
           <div class="savings-copy">
           <p class="eyebrow">custom token recovery target</p>
-          <h2 id="savings-hero-title"><span id="savings-percent">{{.Report.EstimatedWaste.Low}}-{{.Report.EstimatedWaste.High}}%</span> less waste, targeted by your custom skills {{helpTip "How is waste estimated? This is the estimated token range our generated plugin can plausibly help recover. Repeated-read guardrails, retry-loop stops, tool-output caps, context-boundary guidance, and cache hygiene each have bounded capture rates; the range is directional, not provider billing."}}</h2>
+          <h2 id="savings-hero-title"><span id="savings-percent">{{.Report.EstimatedWaste.Low}}-{{.Report.EstimatedWaste.High}}%</span> less waste, targeted by your optimization pack {{helpTip "How is waste estimated? This is the estimated token range our generated optimization pack can plausibly help recover. Repeated-read guardrails, retry-loop stops, tool-output caps, context-boundary guidance, and cache hygiene each have bounded capture rates; the range is directional, not provider billing."}}</h2>
           <p id="waste" class="savings-token-range">{{savingsRange .Report.Metrics.EstimatedTokens .Report.EstimatedWaste}} estimated tokens are addressable from the sessions you analyzed.</p>
           <p class="command-note">Analyzed token volume: {{formatTokens .Report.Metrics.EstimatedTokens}} estimated input/output tokens; {{formatTokens .Report.Metrics.ToolOutputTokens}} estimated from tool output. {{helpTip "What is counted here? Accuracy depends on the source log. When native usage fields exist, we use them. Otherwise we estimate roughly one token per four characters. Tool-output volume is derived from tool-result payload size and similar estimates. This is directional, not invoice-grade accounting."}}</p>
-          <p class="capacity-note">Analyze locally, download the custom skills generated from your own logs, then apply the exact guards for the token leaks Agent Analyzer found.</p>
+          <p class="capacity-note">Analyze locally, review the free findings, then install the optimization pack generated from your analysis when you want Claude Code fixes.</p>
           <div class="report-cta-row" aria-label="Report actions">
             <a class="report-primary-cta" href="#download-report-section">Download report pack</a>
-            <a class="report-secondary-cta" href="#plugin-purchase">Download custom skills</a>
+            <a class="report-secondary-cta" href="#plugin-pitch">Review fixes</a>
           </div>
           </div>
           <div class="score">
@@ -228,15 +228,17 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
         <section class="plugin-pitch" id="plugin-pitch">
           <div>
             <p class="eyebrow">generated remediation</p>
-            <h2>Copy quick fixes now. Download the plugin built for your leaks. {{helpTip "Where do these fixes come from? Fixes are generated from deterministic finding IDs and bounded evidence, not from raw prompts or an LLM reading your transcript. The plugin packages those findings into Claude-facing operating guidance and vetted setup instructions."}}</h2>
-            <p>Add the relevant AGENTS.md lines now. The generated plugin packages your own report into benchmark-backed operating guidance so future sessions spend more of your plan writing software and less on the rereads, retries, dead context, and noisy tools found in your logs.</p>
+            <h2>Copy quick fixes now. Unlock the optimization pack generated from your analysis. {{helpTip "Where do these fixes come from? Fixes are generated from deterministic finding IDs and bounded evidence, not from raw prompts or an LLM reading your transcript. The optimization pack packages those findings into Claude-facing operating guidance and vetted setup instructions."}}</h2>
+            <p>Add the relevant AGENTS.md lines now. The paid optimization pack packages your own report into installable Claude Code guidance so future sessions spend more of your plan writing software and less on the rereads, retries, dead context, and noisy tools found in your logs.</p>
             <ul class="plugin-benefits">
-              <li>Session hygiene nudges.</li>
-              <li>Scoped retrieval recommendations.</li>
-              <li>Output-budgeted command habits.</li>
-              <li>No unproven reducer installs.</li>
+              <li>Deterministic hook pack.</li>
+              <li>Context compression helpers.</li>
+              <li>Slash-command coach.</li>
+              <li>CLAUDE.md optimizer recommendations.</li>
+              <li>Retrieval recommendations.</li>
+              <li>Statusline telemetry.</li>
             </ul>
-            <a class="plugin-cta" href="#plugin-purchase">Download custom skills</a>
+            <a class="plugin-cta" href="#plugin-purchase">Unlock optimization pack</a>
           </div>
           <div class="plugin-fixes-card">
             <h3>Copy-ready AGENTS.md lines</h3>
@@ -247,9 +249,9 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
         {{if .Report.Recommendation}}
         <section id="recommendation-section" class="intel-section">
           <h2>Recommended tools to address waste {{helpTip "Why this recommendation? Ranking comes from public allowlisted tool metadata and deterministic signals such as tool-output bloat, retrieval friction, usage visibility, and MCP/skill utilization. Unknown private names are not echoed."}}</h2>
-          <p class="section-note">These are not random installs. Telemetry tools are labeled as measurement only, and reducers are recommended only when our repeated runs showed savings for the matching waste signal. Use the generated plugin to turn the report into setup instructions.</p>
+          <p class="section-note">These are not random installs. Telemetry tools are labeled as measurement only, and reducers are recommended only when our repeated runs showed savings for the matching waste signal. Use the optimization pack to turn the report into setup instructions.</p>
           <div class="recommendation-cta-row">
-            <a class="plugin-cta" href="#plugin-purchase">Download custom skills</a>
+            <a class="plugin-cta" href="#plugin-purchase">Unlock optimization pack</a>
             <a class="recommendation-allowlist-link" href="/allowed-tools.html">Review vetted allowlist</a>
             <a class="recommendation-allowlist-link" href="/proof/results.html">Review benchmark results</a>
           </div>
@@ -273,11 +275,12 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
         <div class="upsell" id="download-report-section">
           <div class="upsell-copy">
           <p class="eyebrow">portable findings</p>
-          <h2>Download the report pack and your custom plugin for free</h2>
-          <p class="upsell-lede">The report pack shows where your own agent sessions are leaking tokens, includes the benchmark methodology and results, and gives you a partner voucher. The generated plugin turns those specific findings into setup rules and workflow nudges using only reducers that earned scoped recommendations.</p>
+          <h2>Download the free report pack. Unlock installable fixes when you are ready.</h2>
+          <p class="upsell-lede">The report pack is enough to understand the problems: it shows where your own agent sessions are leaking tokens, includes the benchmark methodology and results, and gives you a partner voucher. The $50 optimization pack adds installable Claude Code fixes and deeper customization generated from the same sanitized report JSON.</p>
           <ul class="upsell-proof">
             <li>Raw transcripts stay local.</li>
-            <li>Email required: enter it once to unlock both downloads and receive the links.</li>
+            <li>No subscription and no account required for the MVP checkout.</li>
+            <li>Paid artifact links are created only after Stripe confirms payment.</li>
             <li><a href="/proof/methodology.html">Benchmark methodology and primary data</a>.</li>
           </ul>
           </div>
@@ -285,15 +288,21 @@ var reportHTMLTemplate = template.Must(template.New("report").Funcs(template.Fun
           <form class="email-unlock-form" action="/api/report-deliveries" method="post">
             <input type="hidden" name="source_report_job_id" value="{{.Job.ID}}" />
             <input type="hidden" name="source_report_token" value="{{.ReportToken}}" />
-            <label>Email for report pack + generated plugin
+            <label>Email for free report pack
               <input type="email" name="email" placeholder="you@example.com" required />
             </label>
             <label class="checkbox-row">
               <input type="checkbox" name="marketing_opt_in" value="1" />
               <span>Send me occasional updates about the upcoming Spec Kitty Teamspace launch and agentic coding training.</span>
             </label>
-            <button class="plugin-cta" type="submit">Unlock my custom plugin</button>
-            <p class="command-note">The report pack and generated plugin are free. After submit, this page shows both download buttons and emails the links, the Spec Kitty training voucher reminder, and the Spec Kitty GitHub repo. Raw transcripts are not attached or uploaded.</p>
+            <button class="plugin-cta" type="submit">Send free report pack</button>
+            <p class="command-note">The report pack is free and enough to understand the waste. Raw transcripts are not attached or uploaded.</p>
+          </form>
+          <form class="email-unlock-form" action="/api/optimization-checkouts" method="post">
+            <input type="hidden" name="source_report_job_id" value="{{.Job.ID}}" />
+            <input type="hidden" name="source_report_token" value="{{.ReportToken}}" />
+            <button class="plugin-cta" type="submit">Unlock optimization pack - $50</button>
+            <p class="command-note">One-time Stripe payment. Includes deterministic hook pack, context compression helpers, slash-command coach, CLAUDE.md recommendations, retrieval recommendations, and statusline telemetry.</p>
           </form>
           </div>
         </div>

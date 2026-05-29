@@ -74,7 +74,7 @@
               "Sanitized report JSON upload",
               "Deterministic token-waste findings",
               "Context bloat and retry-loop detection",
-              "Generated optimization plugin flow",
+              "Generated optimization pack flow",
               "Benchmark-backed recommendation allowlist"
             ],
             "offers": {
@@ -186,13 +186,13 @@
             <img src="/images/kitty-lab-coat-384.webp" alt="" width="384" height="384" decoding="async" fetchpriority="high" />
           </picture>
         </div>
-        <p class="subhead" itemprop="description">Run a safe local scan. Get a custom plugin built from your own coding logs.</p>
-        <p class="capacity-note">Agent Analyzer finds the exact token leaks in your recent sessions, then turns those findings into a personalized setup pack for Claude Code, Codex, OpenCode, Cursor, Kiro, Antigravity, and Claude Desktop MCP.</p>
+        <p class="subhead" itemprop="description">Run a safe local scan. Unlock the optimization pack generated from your analysis.</p>
+        <p class="capacity-note">Agent Analyzer finds the exact token leaks in your recent sessions, then turns those findings into a personalized setup pack for Claude Code, Codex, GitHub Copilot, OpenCode, Cursor, Kiro, Antigravity, and Claude Desktop MCP.</p>
         <h2 class="sr-only">What Agent Analyzer detects</h2>
         <ul class="proof" aria-label="Agent Analyzer detection capabilities">
           <li>Detect context bloat and retry loops</li>
           <li>Find wasted reads and oversized outputs</li>
-          <li>Download a plugin matched to your personal token leaks</li>
+          <li>Unlock an optimization pack matched to your personal token leaks</li>
         </ul>
         <h2 class="sr-only">Privacy and trust guarantees</h2>
         <ul class="trust" aria-label="Privacy and trust guarantees">
@@ -213,7 +213,7 @@
             <button id="copy-prompt" class="cta-copy-button" data-copy-prompt type="button">Copy command</button>
           </div>
           <pre id="claude-prompt" data-run-command>npx --yes agent-analyzer@latest run</pre>
-          <p class="command-note">Read-only local scan: no hooks, settings changes, or repo edits. It asks before uploading only the sanitized report JSON, then uses that report to build your personalized plugin. <button type="button" class="help-tip" data-tippy-content="This command uses the published npm package. It discovers supported local agent logs, parses and redacts locally, writes a reviewable report file, asks for confirmation, then uploads only that report JSON. NPX does not install Agent Analyzer globally." aria-label="More information">?</button></p>
+          <p class="command-note">Read-only local scan: no hooks, settings changes, or repo edits. It asks before uploading only the sanitized report JSON, then uses that report to prepare your optimization pack. <button type="button" class="help-tip" data-tippy-content="This command uses the published npm package. It discovers supported local agent logs, parses and redacts locally, writes a reviewable report file, asks for confirmation, then uploads only that report JSON. NPX does not install Agent Analyzer globally." aria-label="More information">?</button></p>
         </section>
 
         <section class="trust-stack" aria-labelledby="install-trust-heading">
@@ -225,7 +225,7 @@
               <li><span>2</span>Parses metrics and redacts secrets locally.</li>
               <li><span>3</span>Writes a reviewable report JSON.</li>
               <li><span>4</span>Asks before upload.</li>
-              <li><span>5</span>Builds a custom plugin from the leaks it found.</li>
+              <li><span>5</span>Prepares an optimization pack from the leaks it found.</li>
             </ol>
           </div>
 
@@ -243,7 +243,7 @@
         <section class="outcome-preview" aria-label="Report outcome preview">
           <div>
             <p class="eyebrow">outcome preview</p>
-            <h2>One command finds your leaks and prepares your plugin.</h2>
+            <h2>One command finds your leaks and prepares your optimization pack.</h2>
           </div>
           <div class="preview-frame" aria-hidden="true">
             <p class="preview-title">This is how it works</p>
@@ -256,7 +256,7 @@
             <div class="preview-report">
               <strong>27</strong>
               <span>efficiency score</span>
-              <p>custom plugin targets these leaks</p>
+              <p>optimization pack targets these leaks</p>
               <div class="preview-bubbles">
                 <i></i><i></i><i></i>
               </div>
@@ -287,10 +287,10 @@
 
         <section class="plugin-preview" aria-labelledby="plugin-preview-heading">
           <div class="section-kicker">
-            <p class="eyebrow">generated plugin</p>
-            <h2 id="plugin-preview-heading">Your logs become a personalized plugin.</h2>
+            <p class="eyebrow">optimization pack</p>
+            <h2 id="plugin-preview-heading">Your logs become installable fixes.</h2>
           </div>
-          <p class="plugin-preview-copy">The plugin is not a generic checklist. Agent Analyzer builds it from the token leakage in your own sanitized report, so your agent gets the skills, commands, and vetted setup guidance that match the waste patterns the scan actually found.</p>
+          <p class="plugin-preview-copy">The optimization pack is not a generic checklist. Agent Analyzer builds it from the token leakage in your own sanitized report, so your agent gets the skills, commands, and vetted setup guidance that match the waste patterns the scan actually found.</p>
           <div class="plugin-count-grid" aria-label="Generated plugin contents">
             <div>
               <strong>Up to 7</strong>
@@ -326,7 +326,7 @@
       </section>
 
       <section class="report" id="report" hidden>
-        <p class="expiry" id="report-status"><a href="#download-report-section">Download your custom skills and save tokens now.</a></p>
+        <p class="expiry" id="report-status"><a href="#download-report-section">Download your free report pack or unlock installable fixes.</a></p>
         <div class="zero-token-banner">
           <strong>0 model tokens used to generate this report.</strong>
           <span>Agent Analyzer uses deterministic local parsing and server-side rendering, not an LLM reading your logs.</span>
@@ -334,13 +334,13 @@
         <section class="savings-hero" aria-labelledby="savings-hero-title">
           <div class="savings-copy">
           <p class="eyebrow">custom token recovery target</p>
-          <h2 id="savings-hero-title"><span id="savings-percent">--</span> less waste, targeted by your custom skills <button type="button" class="help-tip" data-tippy-content="How is waste estimated? This is the estimated token range our generated plugin can plausibly help recover. Repeated-read guardrails, retry-loop stops, tool-output caps, context-boundary guidance, and cache hygiene each have bounded capture rates." aria-label="More information">?</button></h2>
+          <h2 id="savings-hero-title"><span id="savings-percent">--</span> less waste, targeted by your optimization pack <button type="button" class="help-tip" data-tippy-content="How is waste estimated? This is the estimated token range our generated optimization pack can plausibly help recover. Repeated-read guardrails, retry-loop stops, tool-output caps, context-boundary guidance, and cache hygiene each have bounded capture rates." aria-label="More information">?</button></h2>
           <p id="waste" class="savings-token-range"></p>
           <p id="token-volume" class="command-note"></p>
-          <p class="capacity-note">Analyze locally, download the custom skills generated from your own logs, then apply the exact guards for the token leaks Agent Analyzer found.</p>
+          <p class="capacity-note">Analyze locally, review the free findings, then install the optimization pack generated from your analysis when you want Claude Code fixes.</p>
           <div class="report-cta-row" aria-label="Report actions">
             <a class="report-primary-cta" href="#download-report-section">Download report pack</a>
-            <a class="report-secondary-cta" href="#plugin-purchase">Download custom skills</a>
+            <a class="report-secondary-cta" href="#plugin-pitch">Review fixes</a>
           </div>
           </div>
           <div class="score">
@@ -368,15 +368,17 @@
         <section class="plugin-pitch" id="plugin-pitch">
           <div>
             <p class="eyebrow">generated remediation</p>
-            <h2>Copy quick fixes now. Download the plugin built for your leaks. <button type="button" class="help-tip" data-tippy-content="Fixes are generated from deterministic finding IDs and bounded evidence, not from raw prompts or an LLM reading your transcript. The plugin packages those findings into Claude-facing operating guidance and vetted setup instructions." aria-label="More information">?</button></h2>
-            <p>Add the relevant AGENTS.md lines now. The generated plugin packages your own report into benchmark-backed operating guidance so future sessions spend more of your plan writing software and less on the rereads, retries, dead context, and noisy tools found in your logs.</p>
+            <h2>Copy quick fixes now. Unlock the optimization pack generated from your analysis. <button type="button" class="help-tip" data-tippy-content="Fixes are generated from deterministic finding IDs and bounded evidence, not from raw prompts or an LLM reading your transcript. The optimization pack packages those findings into Claude-facing operating guidance and vetted setup instructions." aria-label="More information">?</button></h2>
+            <p>Add the relevant AGENTS.md lines now. The paid optimization pack packages your own report into installable Claude Code guidance so future sessions spend more of your plan writing software and less on the rereads, retries, dead context, and noisy tools found in your logs.</p>
             <ul class="plugin-benefits">
-              <li>Session hygiene nudges.</li>
-              <li>Scoped retrieval recommendations.</li>
-              <li>Output-budgeted command habits.</li>
-              <li>No unproven reducer installs.</li>
+              <li>Deterministic hook pack.</li>
+              <li>Context compression helpers.</li>
+              <li>Slash-command coach.</li>
+              <li>CLAUDE.md optimizer recommendations.</li>
+              <li>Retrieval recommendations.</li>
+              <li>Statusline telemetry.</li>
             </ul>
-            <a class="plugin-cta" href="#plugin-purchase">Download custom skills</a>
+            <a class="plugin-cta" href="#plugin-purchase">Unlock optimization pack</a>
           </div>
           <div class="plugin-fixes-card">
             <h3>Copy-ready AGENTS.md lines</h3>
@@ -386,9 +388,9 @@
         </section>
         <section id="recommendation-section" class="intel-section" hidden>
           <h2>Recommended tools to address waste <button type="button" class="help-tip" data-tippy-content="Recommendation ranking comes from allowlisted tool metadata and deterministic signals such as tool-output bloat, retrieval friction, usage visibility, and MCP/skill utilization. Unknown private names are not echoed." aria-label="More information">?</button></h2>
-          <p class="section-note">These are not random installs. Telemetry tools are labeled as measurement only, and reducers are recommended only when our repeated runs showed savings for the matching waste signal. Use the generated plugin to turn the report into setup instructions.</p>
+          <p class="section-note">These are not random installs. Telemetry tools are labeled as measurement only, and reducers are recommended only when our repeated runs showed savings for the matching waste signal. Use the optimization pack to turn the report into setup instructions.</p>
           <div class="recommendation-cta-row">
-            <a class="plugin-cta" href="#plugin-purchase">Download custom skills</a>
+            <a class="plugin-cta" href="#plugin-purchase">Unlock optimization pack</a>
             <a class="recommendation-allowlist-link" href="/allowed-tools.html">Review vetted allowlist</a>
             <a class="recommendation-allowlist-link" href="/proof/results.html">Review benchmark results</a>
           </div>
@@ -410,11 +412,12 @@
         <div class="upsell" id="download-report-section">
           <div class="upsell-copy">
             <p class="eyebrow">portable findings</p>
-            <h2>Get the report pack and your custom plugin by email</h2>
-            <p class="upsell-lede">The report pack shows where your own agent sessions are leaking tokens. The generated plugin turns those specific findings into setup rules and workflow nudges using only reducers that earned scoped recommendations.</p>
+            <h2>Download the free report pack. Unlock installable fixes when you are ready.</h2>
+            <p class="upsell-lede">The report pack is enough to understand the problems. The $50 optimization pack adds installable Claude Code fixes and deeper customization generated from the same sanitized report JSON.</p>
             <ul class="upsell-proof">
               <li>Raw transcripts stay local.</li>
-              <li>Email delivery includes the report pack and generated plugin as attachments.</li>
+              <li>No subscription and no account required for the MVP checkout.</li>
+              <li>Paid artifact links are created only after Stripe confirms payment.</li>
               <li><a href="/proof/methodology.html">Benchmark methodology and primary data</a>.</li>
             </ul>
           </div>
@@ -422,15 +425,21 @@
             <form class="email-unlock-form" action="/api/report-deliveries" method="post">
               <input type="hidden" name="source_report_job_id" value="" />
               <input type="hidden" name="source_report_token" value="" />
-              <label>Email for report + plugin attachments
+              <label>Email for free report pack
                 <input type="email" name="email" placeholder="you@example.com" required />
               </label>
               <label class="checkbox-row">
                 <input type="checkbox" name="marketing_opt_in" value="1" />
                 <span>Send me occasional updates about the upcoming Spec Kitty Teamspace launch and agentic coding training.</span>
               </label>
-              <button class="plugin-cta" type="submit">Email me the report + plugin</button>
-              <p class="command-note">We send the branded report pack and generated plugin zip to this address. The email also includes install instructions. Raw transcripts are not attached or uploaded.</p>
+              <button class="plugin-cta" type="submit">Send free report pack</button>
+              <p class="command-note">The report pack is free and enough to understand the waste. Raw transcripts are not attached or uploaded.</p>
+            </form>
+            <form class="email-unlock-form" action="/api/optimization-checkouts" method="post">
+              <input type="hidden" name="source_report_job_id" value="" />
+              <input type="hidden" name="source_report_token" value="" />
+              <button class="plugin-cta" type="submit">Unlock optimization pack - $50</button>
+              <p class="command-note">One-time Stripe payment. Includes deterministic hook pack, context compression helpers, slash-command coach, CLAUDE.md recommendations, retrieval recommendations, and statusline telemetry.</p>
             </form>
           </div>
         </div>

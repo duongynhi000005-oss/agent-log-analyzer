@@ -102,7 +102,10 @@ func buildMux(store app.APIStore) http.Handler {
 	mux.HandleFunc("POST /api/paid-client-reports", createPaidClientReportHandler(store, reportTTL()))
 	mux.HandleFunc("POST /api/email-unlocks", createEmailUnlockHandler(store, emailSender))
 	mux.HandleFunc("POST /api/report-deliveries", createReportDeliveryHandler(store, emailSender))
+	mux.HandleFunc("POST /api/optimization-checkouts", createOptimizationCheckoutHandler(store))
+	mux.HandleFunc("POST /api/analytics/cta-copy/{id}", ctaCopyAnalyticsHandler())
 	mux.HandleFunc("GET /email/confirm/{id}/{token}", confirmEmailUnlockHandler(store, emailSender))
+	mux.HandleFunc("GET /optimization-unlock/success", optimizationUnlockSuccessHandler(store))
 	mux.HandleFunc("POST /api/full-scan-client-reports", createFullScanClientReportHandler(store, emailSender, reportTTL()))
 	mux.HandleFunc("PUT /api/uploads/{id}", tokenUploadHandler(store))
 	mux.HandleFunc("POST /api/uploads/{id}/finalize", finalizeTokenUploadHandler(store))
@@ -112,6 +115,7 @@ func buildMux(store app.APIStore) http.Handler {
 	mux.HandleFunc("GET /api/public-reports/{id}/{token}/extended.md", getExtendedReportHandler(store))
 	mux.HandleFunc("GET /api/public-reports/{id}/{token}/download.zip", getExtendedReportHandler(store))
 	mux.HandleFunc("GET /api/public-artifacts/{id}/{token}/plugin.zip", getPublicArtifactHandler(store))
+	mux.HandleFunc("GET /api/paid-artifacts/{id}/{token}/{session}/plugin.zip", getPaidArtifactHandler(store))
 	mux.HandleFunc("GET /r/{id}/{token}", reportPageHandler(store))
 	mux.HandleFunc("GET /api/jobs/{id}", getJobHandler(store))
 	mux.HandleFunc("GET /api/admin/usage-stats", usageStatsHandler(store))
@@ -831,9 +835,6 @@ func renderPluginArtifactZip(report analyzer.Report, artifactURL string) ([]byte
 }
 
 func jobAllowsPluginArtifact(job app.Job) bool {
-	if job.ScanType == app.ScanTypeSingle && job.Status == app.StatusCompleted {
-		return true
-	}
 	if job.ScanType == app.ScanTypeFullScan {
 		return true
 	}
@@ -871,6 +872,15 @@ func sanitizePath(path string) string {
 	}
 	if strings.HasPrefix(path, "/api/public-artifacts/") {
 		return "/api/public-artifacts/:id/:token/plugin.zip"
+	}
+	if strings.HasPrefix(path, "/api/paid-artifacts/") {
+		return "/api/paid-artifacts/:id/:token/:session/plugin.zip"
+	}
+	if strings.HasPrefix(path, "/api/optimization-checkouts") {
+		return "/api/optimization-checkouts"
+	}
+	if strings.HasPrefix(path, "/optimization-unlock/success") {
+		return "/optimization-unlock/success"
 	}
 	if strings.HasPrefix(path, "/api/email-unlocks") {
 		return "/api/email-unlocks"
