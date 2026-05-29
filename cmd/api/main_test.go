@@ -5,6 +5,9 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -13,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -1529,6 +1533,16 @@ func TestPaidBundleUploadRequiresPaidTokenAndLimit(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected paid upload status 201, got %d: %s", rec.Code, rec.Body.String())
 	}
+	reuseReq := httptest.NewRequest(http.MethodPut, "/api/paid-uploads/job-paid-token?limit=100", bytes.NewReader(testPaidBundle(t)))
+	reuseReq.SetPathValue("id", "job-paid-token")
+	reuseReq.Header.Set("Authorization", "Bearer "+token)
+	reuseReq.Header.Set("Content-Type", "application/gzip")
+	reuseReq.Header.Set("X-Scan-Limit", "100")
+	reuseRec := httptest.NewRecorder()
+	paidBundleUploadHandler(store).ServeHTTP(reuseRec, reuseReq)
+	if reuseRec.Code != http.StatusConflict {
+		t.Fatalf("expected reused paid upload token status 409, got %d: %s", reuseRec.Code, reuseRec.Body.String())
+	}
 	finalizeReq := httptest.NewRequest(http.MethodPost, "/api/paid-uploads/job-paid-token/finalize", nil)
 	finalizeReq.SetPathValue("id", "job-paid-token")
 	finalizeReq.Header.Set("Authorization", "Bearer "+token)
@@ -1634,6 +1648,141 @@ func TestCreatePaidSessionReturnsLegacyPaidBundleOnlyWhenExplicit(t *testing.T) 
 	}
 }
 
+func TestStripeWebhookSuccessCreatesPaidScanSession(t *testing.T) {
+	t.Setenv("STRIPE_WEBHOOK_SECRET", "whsec_test_secret")
+	store, err := localstore.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := []byte(`{"id":"evt_paid_success","type":"checkout.session.completed","data":{"object":{"id":"cs_test_paid","payment_status":"paid","status":"complete","payment_intent":"pi_test_paid","amount_total":5000,"currency":"usd"}}}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/stripe/webhook", bytes.NewReader(payload))
+	req.Host = "example.test"
+	req.Header.Set("Stripe-Signature", stripeTestSignature(t, payload, "whsec_test_secret", time.Now()))
+	rec := httptest.NewRecorder()
+
+	stripeWebhookHandler(store, 15*time.Minute).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected stripe webhook status 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var session analysisSessionResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &session); err != nil {
+		t.Fatalf("response is not valid session JSON: %v", err)
+	}
+	for _, want := range []string{"CLAUDE_ANALYZER_SCAN_LIMIT=100", "limit=100", "X-Scan-Limit: 100"} {
+		if !strings.Contains(session.Command, want) {
+			t.Fatalf("paid command missing %q: %s", want, session.Command)
+		}
+	}
+	if session.Token == "" || !strings.Contains(session.UploadPath, "/api/paid-uploads/") {
+		t.Fatalf("expected paid upload token response, got %#v", session)
+	}
+	job, err := store.GetJob(session.JobID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if job.ScanType != app.ScanTypePaidBundle || job.PaymentProvider != "stripe" || job.PaymentEventID != "evt_paid_success" || job.PaymentSessionID != "cs_test_paid" || job.PaymentIntentID != "pi_test_paid" || job.PaymentAmountCents != 5000 || job.PaymentCurrency != "usd" {
+		t.Fatalf("expected paid stripe metadata without raw logs, got %#v", job)
+	}
+
+	freeReq := httptest.NewRequest(http.MethodPut, "/api/uploads/"+session.JobID, strings.NewReader("log line"))
+	freeReq.SetPathValue("id", session.JobID)
+	freeReq.Header.Set("Authorization", "Bearer "+session.Token)
+	freeRec := httptest.NewRecorder()
+	tokenUploadHandler(store).ServeHTTP(freeRec, freeReq)
+	if freeRec.Code != http.StatusBadRequest {
+		t.Fatalf("expected paid token to be rejected by free upload endpoint, got %d: %s", freeRec.Code, freeRec.Body.String())
+	}
+}
+
+func TestStripeWebhookRejectsInvalidSignature(t *testing.T) {
+	t.Setenv("STRIPE_WEBHOOK_SECRET", "whsec_test_secret")
+	store, err := localstore.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := []byte(`{"id":"evt_bad_sig","type":"checkout.session.completed","data":{"object":{"id":"cs_bad_sig","payment_status":"paid"}}}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/stripe/webhook", bytes.NewReader(payload))
+	req.Header.Set("Stripe-Signature", "t=123,v1=not-valid")
+	rec := httptest.NewRecorder()
+
+	stripeWebhookHandler(store, 15*time.Minute).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected invalid signature status 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if _, err := store.GetPaidJobByPaymentSessionID("cs_bad_sig"); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("invalid signature should not create paid job, got err=%v", err)
+	}
+}
+
+func TestStripeWebhookIgnoresFailedOrCanceledPayment(t *testing.T) {
+	t.Setenv("STRIPE_WEBHOOK_SECRET", "whsec_test_secret")
+	store, err := localstore.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, payload := range [][]byte{
+		[]byte(`{"id":"evt_checkout_expired","type":"checkout.session.expired","data":{"object":{"id":"cs_expired","payment_status":"unpaid"}}}`),
+		[]byte(`{"id":"evt_checkout_unpaid","type":"checkout.session.completed","data":{"object":{"id":"cs_unpaid","payment_status":"unpaid"}}}`),
+	} {
+		req := httptest.NewRequest(http.MethodPost, "/api/stripe/webhook", bytes.NewReader(payload))
+		req.Header.Set("Stripe-Signature", stripeTestSignature(t, payload, "whsec_test_secret", time.Now()))
+		rec := httptest.NewRecorder()
+
+		stripeWebhookHandler(store, 15*time.Minute).ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected ignored payment status 200, got %d: %s", rec.Code, rec.Body.String())
+		}
+	}
+	if _, err := store.GetPaidJobByPaymentSessionID("cs_expired"); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expired checkout should not create paid job, got err=%v", err)
+	}
+	if _, err := store.GetPaidJobByPaymentSessionID("cs_unpaid"); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("unpaid checkout should not create paid job, got err=%v", err)
+	}
+}
+
+func TestStripeWebhookReplayDoesNotMintSecondToken(t *testing.T) {
+	t.Setenv("STRIPE_WEBHOOK_SECRET", "whsec_test_secret")
+	store, err := localstore.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := []byte(`{"id":"evt_replay","type":"checkout.session.completed","data":{"object":{"id":"cs_replay","payment_status":"paid","payment_intent":"pi_replay","amount_total":5000,"currency":"usd"}}}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/stripe/webhook", bytes.NewReader(payload))
+	req.Header.Set("Stripe-Signature", stripeTestSignature(t, payload, "whsec_test_secret", time.Now()))
+	firstRec := httptest.NewRecorder()
+	stripeWebhookHandler(store, 15*time.Minute).ServeHTTP(firstRec, req)
+	if firstRec.Code != http.StatusCreated {
+		t.Fatalf("expected first webhook status 201, got %d: %s", firstRec.Code, firstRec.Body.String())
+	}
+	var first analysisSessionResponse
+	if err := json.Unmarshal(firstRec.Body.Bytes(), &first); err != nil {
+		t.Fatal(err)
+	}
+
+	replayReq := httptest.NewRequest(http.MethodPost, "/api/stripe/webhook", bytes.NewReader(payload))
+	replayReq.Header.Set("Stripe-Signature", stripeTestSignature(t, payload, "whsec_test_secret", time.Now()))
+	replayRec := httptest.NewRecorder()
+	stripeWebhookHandler(store, 15*time.Minute).ServeHTTP(replayRec, replayReq)
+
+	if replayRec.Code != http.StatusOK {
+		t.Fatalf("expected replay status 200, got %d: %s", replayRec.Code, replayRec.Body.String())
+	}
+	if strings.Contains(replayRec.Body.String(), "token") {
+		t.Fatalf("replay response should not expose or mint a token: %s", replayRec.Body.String())
+	}
+	replayJob, err := store.GetPaidJobByPaymentSessionID("cs_replay")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if replayJob.ID != first.JobID {
+		t.Fatalf("replay should resolve to first job %q, got %#v", first.JobID, replayJob)
+	}
+}
+
 func TestPaidBundleUploadRejectsFreeToken(t *testing.T) {
 	store, err := localstore.New(t.TempDir())
 	if err != nil {
@@ -1725,6 +1874,48 @@ func TestTokenUploadRejectsExpiredToken(t *testing.T) {
 	if rec.Code != http.StatusGone {
 		t.Fatalf("expected expired token status 410, got %d: %s", rec.Code, rec.Body.String())
 	}
+}
+
+func TestPaidBundleUploadRejectsExpiredToken(t *testing.T) {
+	store, err := localstore.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := "expired-paid-token"
+	job := app.Job{
+		ID:                   "job-expired-paid-token",
+		Status:               app.StatusUploading,
+		ScanType:             app.ScanTypePaidBundle,
+		MaxUploadBytes:       maxPaidUploadBytes,
+		UploadTokenHash:      tokenHash(token),
+		ReportTokenHash:      tokenHash("report-token"),
+		UploadTokenExpiresAt: time.Now().UTC().Add(-time.Minute),
+	}
+	if err := store.CreateUploadSession(job); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodPut, "/api/paid-uploads/job-expired-paid-token?limit=100", bytes.NewReader(testPaidBundle(t)))
+	req.SetPathValue("id", "job-expired-paid-token")
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/gzip")
+	req.Header.Set("X-Scan-Limit", "100")
+	rec := httptest.NewRecorder()
+
+	paidBundleUploadHandler(store).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusGone {
+		t.Fatalf("expected expired paid token status 410, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func stripeTestSignature(t *testing.T, payload []byte, secret string, timestamp time.Time) string {
+	t.Helper()
+	ts := timestamp.Unix()
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, _ = mac.Write([]byte(strconv.FormatInt(ts, 10) + "."))
+	_, _ = mac.Write(payload)
+	return "t=" + strconv.FormatInt(ts, 10) + ",v1=" + hex.EncodeToString(mac.Sum(nil))
 }
 
 func testPaidBundle(t *testing.T) []byte {

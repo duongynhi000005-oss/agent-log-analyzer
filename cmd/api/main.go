@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -9,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -45,6 +47,33 @@ type paidSessionRequest struct {
 	Acknowledgment string `json:"acknowledgment"`
 }
 
+type paidPaymentMetadata struct {
+	EventID     string
+	SessionID   string
+	IntentID    string
+	AmountCents int64
+	Currency    string
+}
+
+type stripeWebhookEvent struct {
+	ID   string          `json:"id"`
+	Type string          `json:"type"`
+	Data stripeEventData `json:"data"`
+}
+
+type stripeEventData struct {
+	Object json.RawMessage `json:"object"`
+}
+
+type stripeCheckoutSession struct {
+	ID            string `json:"id"`
+	Status        string `json:"status"`
+	PaymentStatus string `json:"payment_status"`
+	PaymentIntent any    `json:"payment_intent"`
+	AmountTotal   int64  `json:"amount_total"`
+	Currency      string `json:"currency"`
+}
+
 func main() {
 	addr := getenv("CLAUDE_ANALYZER_ADDR", ":8080")
 	store, err := backend.NewAPIStore()
@@ -68,6 +97,7 @@ func buildMux(store app.APIStore) http.Handler {
 	mux.HandleFunc("GET /healthz", healthHandler())
 	mux.HandleFunc("POST /api/analysis-sessions", createAnalysisSessionHandler(store, maxQueueDepth(), uploadTokenTTL()))
 	mux.HandleFunc("POST /api/paid-sessions", createPaidSessionHandler(store, uploadTokenTTL()))
+	mux.HandleFunc("POST /api/stripe/webhook", stripeWebhookHandler(store, uploadTokenTTL()))
 	mux.HandleFunc("POST /api/client-reports", createClientReportHandler(store, reportTTL()))
 	mux.HandleFunc("POST /api/paid-client-reports", createPaidClientReportHandler(store, reportTTL()))
 	mux.HandleFunc("POST /api/email-unlocks", createEmailUnlockHandler(store, emailSender))
@@ -296,52 +326,223 @@ func createPaidSessionHandler(store app.APIStore, expiresIn time.Duration) http.
 			writeJSON(w, http.StatusCreated, paidLocalFirstSessionResponse(publicBaseURL(r)))
 			return
 		}
-		uploadToken, err := newToken()
+		response, err := createPaidUploadSession(sessionStore, publicBaseURL(r), expiresIn, paidPaymentMetadata{})
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "could not create upload token")
-			return
-		}
-		reportToken, err := newToken()
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "could not create report token")
-			return
-		}
-		now := time.Now().UTC()
-		jobID := app.NewJobID()
-		job := app.Job{
-			ID:                   jobID,
-			Status:               app.StatusUploading,
-			ScanType:             app.ScanTypePaidBundle,
-			MaxUploadBytes:       maxPaidUploadBytes,
-			UploadTokenHash:      tokenHash(uploadToken),
-			ReportTokenHash:      tokenHash(reportToken),
-			UploadTokenExpiresAt: now.Add(expiresIn),
-			WaiverAcceptedAt:     now,
-			CreatedAt:            now,
-			UpdatedAt:            now,
-		}
-		if err := sessionStore.CreateUploadSession(job); err != nil {
 			writeError(w, http.StatusInternalServerError, "could not create paid scan session")
 			return
 		}
-		baseURL := publicBaseURL(r)
-		uploadPath := "/api/paid-uploads/" + jobID
-		finalizePath := uploadPath + "/finalize"
-		reportPath := "/r/" + jobID + "/" + reportToken
-		response := analysisSessionResponse{
-			JobID:        jobID,
-			Token:        uploadToken,
-			UploadPath:   uploadPath,
-			FinalizePath: finalizePath,
-			ReportPath:   reportPath,
-			ReportURL:    baseURL + reportPath,
-			ExpiresAt:    timePtr(job.UploadTokenExpiresAt),
-			MaxBytes:     maxPaidUploadBytes,
-		}
-		response.Command = paidShellCommand(baseURL, response)
-		response.Prompt = paidClaudePrompt(response.Command)
 		writeJSON(w, http.StatusCreated, response)
 	}
+}
+
+func stripeWebhookHandler(store app.APIStore, expiresIn time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		secret := strings.TrimSpace(os.Getenv("STRIPE_WEBHOOK_SECRET"))
+		if secret == "" {
+			writeError(w, http.StatusServiceUnavailable, "stripe webhook is not configured")
+			return
+		}
+		sessionStore, ok := store.(app.TokenUploadStore)
+		if !ok {
+			writeError(w, http.StatusNotImplemented, "token upload unavailable")
+			return
+		}
+		paymentStore, ok := store.(app.PaidPaymentSessionStore)
+		if !ok {
+			writeError(w, http.StatusNotImplemented, "paid payment lookup unavailable")
+			return
+		}
+		payload, err := analyzer.ReadAllLimited(r.Body, 256*1024)
+		if err != nil {
+			writeError(w, http.StatusRequestEntityTooLarge, "stripe webhook too large")
+			return
+		}
+		if err := verifyStripeSignature(payload, r.Header.Get("Stripe-Signature"), secret, 5*time.Minute); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid stripe signature")
+			return
+		}
+		var event stripeWebhookEvent
+		if err := json.Unmarshal(payload, &event); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid stripe webhook JSON")
+			return
+		}
+		metadata, ok, err := paidMetadataFromStripeEvent(event)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		if !ok {
+			writeJSON(w, http.StatusOK, map[string]string{"status": "ignored"})
+			return
+		}
+		if replayJob, err := paymentStore.GetPaidJobByPaymentEventID(metadata.EventID); err == nil {
+			writeJSON(w, http.StatusOK, map[string]string{"status": "duplicate", "job_id": replayJob.ID})
+			return
+		} else if !errors.Is(err, os.ErrNotExist) {
+			writeError(w, http.StatusInternalServerError, "could not check stripe event replay")
+			return
+		}
+		if replayJob, err := paymentStore.GetPaidJobByPaymentSessionID(metadata.SessionID); err == nil {
+			writeJSON(w, http.StatusOK, map[string]string{"status": "duplicate", "job_id": replayJob.ID})
+			return
+		} else if !errors.Is(err, os.ErrNotExist) {
+			writeError(w, http.StatusInternalServerError, "could not check stripe session replay")
+			return
+		}
+		response, err := createPaidUploadSession(sessionStore, publicBaseURL(r), expiresIn, metadata)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "could not create paid scan session")
+			return
+		}
+		writeJSON(w, http.StatusCreated, response)
+	}
+}
+
+func createPaidUploadSession(sessionStore app.TokenUploadStore, baseURL string, expiresIn time.Duration, payment paidPaymentMetadata) (analysisSessionResponse, error) {
+	uploadToken, err := newToken()
+	if err != nil {
+		return analysisSessionResponse{}, err
+	}
+	reportToken, err := newToken()
+	if err != nil {
+		return analysisSessionResponse{}, err
+	}
+	now := time.Now().UTC()
+	jobID := app.NewJobID()
+	job := app.Job{
+		ID:                   jobID,
+		Status:               app.StatusUploading,
+		ScanType:             app.ScanTypePaidBundle,
+		MaxUploadBytes:       maxPaidUploadBytes,
+		UploadTokenHash:      tokenHash(uploadToken),
+		ReportTokenHash:      tokenHash(reportToken),
+		UploadTokenExpiresAt: now.Add(expiresIn),
+		WaiverAcceptedAt:     now,
+		PaymentProvider:      paymentProvider(payment),
+		PaymentEventID:       payment.EventID,
+		PaymentSessionID:     payment.SessionID,
+		PaymentIntentID:      payment.IntentID,
+		PaymentAmountCents:   payment.AmountCents,
+		PaymentCurrency:      strings.ToLower(payment.Currency),
+		CreatedAt:            now,
+		UpdatedAt:            now,
+	}
+	if err := sessionStore.CreateUploadSession(job); err != nil {
+		return analysisSessionResponse{}, err
+	}
+	uploadPath := "/api/paid-uploads/" + jobID
+	finalizePath := uploadPath + "/finalize"
+	reportPath := "/r/" + jobID + "/" + reportToken
+	response := analysisSessionResponse{
+		JobID:        jobID,
+		Token:        uploadToken,
+		UploadPath:   uploadPath,
+		FinalizePath: finalizePath,
+		ReportPath:   reportPath,
+		ReportURL:    baseURL + reportPath,
+		ExpiresAt:    timePtr(job.UploadTokenExpiresAt),
+		MaxBytes:     maxPaidUploadBytes,
+	}
+	response.Command = paidShellCommand(baseURL, response)
+	response.Prompt = paidClaudePrompt(response.Command)
+	return response, nil
+}
+
+func paymentProvider(payment paidPaymentMetadata) string {
+	if payment.EventID == "" && payment.SessionID == "" {
+		return ""
+	}
+	return "stripe"
+}
+
+func paidMetadataFromStripeEvent(event stripeWebhookEvent) (paidPaymentMetadata, bool, error) {
+	if event.ID == "" {
+		return paidPaymentMetadata{}, false, errors.New("stripe event missing id")
+	}
+	if event.Type != "checkout.session.completed" {
+		return paidPaymentMetadata{}, false, nil
+	}
+	var session stripeCheckoutSession
+	if err := json.Unmarshal(event.Data.Object, &session); err != nil {
+		return paidPaymentMetadata{}, false, errors.New("invalid stripe checkout session")
+	}
+	if session.ID == "" {
+		return paidPaymentMetadata{}, false, errors.New("stripe checkout session missing id")
+	}
+	if session.PaymentStatus != "paid" {
+		return paidPaymentMetadata{}, false, nil
+	}
+	if session.AmountTotal != 5000 || strings.ToLower(session.Currency) != "usd" {
+		return paidPaymentMetadata{}, false, errors.New("stripe checkout session is not the paid scan amount")
+	}
+	return paidPaymentMetadata{
+		EventID:     event.ID,
+		SessionID:   session.ID,
+		IntentID:    stripeObjectID(session.PaymentIntent),
+		AmountCents: session.AmountTotal,
+		Currency:    session.Currency,
+	}, true, nil
+}
+
+func stripeObjectID(value any) string {
+	switch typed := value.(type) {
+	case string:
+		return typed
+	case map[string]any:
+		id, _ := typed["id"].(string)
+		return id
+	default:
+		return ""
+	}
+}
+
+func verifyStripeSignature(payload []byte, header, secret string, tolerance time.Duration) error {
+	timestamp, signatures, err := parseStripeSignatureHeader(header)
+	if err != nil {
+		return err
+	}
+	now := time.Now().UTC()
+	signedAt := time.Unix(timestamp, 0).UTC()
+	if tolerance > 0 && (now.Sub(signedAt) > tolerance || signedAt.Sub(now) > tolerance) {
+		return errors.New("stripe signature timestamp outside tolerance")
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, _ = mac.Write([]byte(fmt.Sprintf("%d.", timestamp)))
+	_, _ = mac.Write(payload)
+	expected := hex.EncodeToString(mac.Sum(nil))
+	for _, signature := range signatures {
+		if subtle.ConstantTimeCompare([]byte(expected), []byte(signature)) == 1 {
+			return nil
+		}
+	}
+	return errors.New("stripe signature mismatch")
+}
+
+func parseStripeSignatureHeader(header string) (int64, []string, error) {
+	var timestamp int64
+	var signatures []string
+	for _, part := range strings.Split(header, ",") {
+		key, value, ok := strings.Cut(strings.TrimSpace(part), "=")
+		if !ok {
+			continue
+		}
+		switch key {
+		case "t":
+			parsed, err := strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return 0, nil, err
+			}
+			timestamp = parsed
+		case "v1":
+			if value != "" {
+				signatures = append(signatures, value)
+			}
+		}
+	}
+	if timestamp == 0 || len(signatures) == 0 {
+		return 0, nil, errors.New("missing stripe signature timestamp or v1 signature")
+	}
+	return timestamp, signatures, nil
 }
 
 func waiverAccepted(r *http.Request) bool {
@@ -673,6 +874,9 @@ func sanitizePath(path string) string {
 	if strings.HasPrefix(path, "/api/report-deliveries") {
 		return "/api/report-deliveries"
 	}
+	if strings.HasPrefix(path, "/api/stripe/webhook") {
+		return "/api/stripe/webhook"
+	}
 	if strings.HasPrefix(path, "/api/full-scan-client-reports") {
 		return "/api/full-scan-client-reports"
 	}
@@ -799,6 +1003,7 @@ func paidShellCommand(baseURL string, response analysisSessionResponse) string {
 	uploadURL := baseURL + response.UploadPath + "?limit=100"
 	finalizeURL := baseURL + response.FinalizePath
 	return strings.Join([]string{
+		`export CLAUDE_ANALYZER_SCAN_LIMIT=100`,
 		`BUNDLE="$(mktemp -t agent-analyzer-paid.XXXXXX.tar.gz)"`,
 		`LIST="$(mktemp -t agent-analyzer-paid.XXXXXX.txt)"`,
 		`python3 - <<'PY' > "$LIST"`,

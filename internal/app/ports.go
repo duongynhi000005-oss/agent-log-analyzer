@@ -66,6 +66,11 @@ type TokenUploadStore interface {
 	FinalizeUploadSession(job Job) error
 }
 
+type PaidPaymentSessionStore interface {
+	GetPaidJobByPaymentEventID(eventID string) (Job, error)
+	GetPaidJobByPaymentSessionID(sessionID string) (Job, error)
+}
+
 type WorkerStore interface {
 	UploadStore
 	JobQueue

@@ -561,6 +561,36 @@ func (s *Store) GetJob(id string) (app.Job, error) {
 	return jobFromItem(output.Item)
 }
 
+func (s *Store) GetPaidJobByPaymentEventID(eventID string) (app.Job, error) {
+	return s.getPaidJobByPaymentField("payment_event_id", eventID)
+}
+
+func (s *Store) GetPaidJobByPaymentSessionID(sessionID string) (app.Job, error) {
+	return s.getPaidJobByPaymentField("payment_session_id", sessionID)
+}
+
+func (s *Store) getPaidJobByPaymentField(field, value string) (app.Job, error) {
+	if strings.TrimSpace(value) == "" {
+		return app.Job{}, os.ErrNotExist
+	}
+	output, err := s.dynamodb.Scan(context.Background(), &dynamodb.ScanInput{
+		TableName:        aws.String(s.jobTable),
+		FilterExpression: aws.String("scan_type = :scan_type AND " + field + " = :value"),
+		ExpressionAttributeValues: map[string]dynamodbtypes.AttributeValue{
+			":scan_type": &dynamodbtypes.AttributeValueMemberS{Value: string(app.ScanTypePaidBundle)},
+			":value":     &dynamodbtypes.AttributeValueMemberS{Value: value},
+		},
+		Limit: aws.Int32(1),
+	})
+	if err != nil {
+		return app.Job{}, err
+	}
+	if len(output.Items) == 0 {
+		return app.Job{}, os.ErrNotExist
+	}
+	return jobFromItem(output.Items[0])
+}
+
 func (s *Store) QueueDepth() (int, error) {
 	output, err := s.sqs.GetQueueAttributes(context.Background(), &sqs.GetQueueAttributesInput{
 		QueueUrl: aws.String(s.queueURL),
@@ -676,6 +706,24 @@ func (s *Store) putJob(job app.Job) error {
 	}
 	if !job.WaiverAcceptedAt.IsZero() {
 		item["waiver_accepted_at"] = &dynamodbtypes.AttributeValueMemberS{Value: job.WaiverAcceptedAt.Format(time.RFC3339Nano)}
+	}
+	if job.PaymentProvider != "" {
+		item["payment_provider"] = &dynamodbtypes.AttributeValueMemberS{Value: job.PaymentProvider}
+	}
+	if job.PaymentEventID != "" {
+		item["payment_event_id"] = &dynamodbtypes.AttributeValueMemberS{Value: job.PaymentEventID}
+	}
+	if job.PaymentSessionID != "" {
+		item["payment_session_id"] = &dynamodbtypes.AttributeValueMemberS{Value: job.PaymentSessionID}
+	}
+	if job.PaymentIntentID != "" {
+		item["payment_intent_id"] = &dynamodbtypes.AttributeValueMemberS{Value: job.PaymentIntentID}
+	}
+	if job.PaymentAmountCents > 0 {
+		item["payment_amount_cents"] = &dynamodbtypes.AttributeValueMemberN{Value: strconv.FormatInt(job.PaymentAmountCents, 10)}
+	}
+	if job.PaymentCurrency != "" {
+		item["payment_currency"] = &dynamodbtypes.AttributeValueMemberS{Value: job.PaymentCurrency}
 	}
 	if !job.CompletedAt.IsZero() {
 		item["completed_at"] = &dynamodbtypes.AttributeValueMemberS{Value: job.CompletedAt.Format(time.RFC3339Nano)}
@@ -811,6 +859,12 @@ func jobFromItem(item map[string]dynamodbtypes.AttributeValue) (app.Job, error) 
 		ReportTokenHash: stringAttr(item, "report_token_hash"),
 		ReportPath:      stringAttr(item, "report_path"),
 		Error:           stringAttr(item, "error"),
+		PaymentProvider:    stringAttr(item, "payment_provider"),
+		PaymentEventID:     stringAttr(item, "payment_event_id"),
+		PaymentSessionID:   stringAttr(item, "payment_session_id"),
+		PaymentIntentID:    stringAttr(item, "payment_intent_id"),
+		PaymentAmountCents: int64Attr(item, "payment_amount_cents"),
+		PaymentCurrency:    stringAttr(item, "payment_currency"),
 	}
 	var err error
 	job.CreatedAt, err = parseTimeAttr(item, "created_at")

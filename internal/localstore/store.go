@@ -370,6 +370,41 @@ func (s *Store) GetJob(id string) (app.Job, error) {
 	return app.Job{}, os.ErrNotExist
 }
 
+func (s *Store) GetPaidJobByPaymentEventID(eventID string) (app.Job, error) {
+	return s.getPaidJobByPaymentField(func(job app.Job) bool {
+		return job.PaymentEventID == eventID
+	})
+}
+
+func (s *Store) GetPaidJobByPaymentSessionID(sessionID string) (app.Job, error) {
+	return s.getPaidJobByPaymentField(func(job app.Job) bool {
+		return job.PaymentSessionID == sessionID
+	})
+}
+
+func (s *Store) getPaidJobByPaymentField(match func(app.Job) bool) (app.Job, error) {
+	for _, status := range []string{"uploading", "pending", "processing", "completed", "failed"} {
+		dir := filepath.Join(s.root, "jobs", status)
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return app.Job{}, err
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+				continue
+			}
+			job, err := readJob(filepath.Join(dir, entry.Name()))
+			if err != nil {
+				continue
+			}
+			if job.ScanType == app.ScanTypePaidBundle && match(job) {
+				return job, nil
+			}
+		}
+	}
+	return app.Job{}, os.ErrNotExist
+}
+
 func (s *Store) QueueDepth() (int, error) {
 	total := 0
 	for _, status := range []string{"pending", "processing"} {
