@@ -732,6 +732,10 @@ func finalizeTokenUploadHandler(store app.APIStore) http.HandlerFunc {
 		if !ok {
 			return
 		}
+		if job.ScanType == app.ScanTypePaidBundle && job.Status != app.StatusUploading {
+			writeError(w, http.StatusConflict, "upload token already used")
+			return
+		}
 		if job.UploadPath == "" && job.Status == app.StatusUploading {
 			writeError(w, http.StatusBadRequest, "upload missing")
 			return

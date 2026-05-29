@@ -1559,6 +1559,15 @@ func TestPaidBundleUploadRequiresPaidTokenAndLimit(t *testing.T) {
 	if stored.Status != app.StatusPending || stored.ScanType != app.ScanTypePaidBundle {
 		t.Fatalf("expected pending paid bundle job, got %#v", stored)
 	}
+
+	reuseFinalizeReq := httptest.NewRequest(http.MethodPost, "/api/paid-uploads/job-paid-token/finalize", nil)
+	reuseFinalizeReq.SetPathValue("id", "job-paid-token")
+	reuseFinalizeReq.Header.Set("Authorization", "Bearer "+token)
+	reuseFinalizeRec := httptest.NewRecorder()
+	finalizeTokenUploadHandler(store).ServeHTTP(reuseFinalizeRec, reuseFinalizeReq)
+	if reuseFinalizeRec.Code != http.StatusConflict {
+		t.Fatalf("expected reused paid finalize token status 409, got %d: %s", reuseFinalizeRec.Code, reuseFinalizeRec.Body.String())
+	}
 }
 
 func TestCreatePaidSessionRequiresLocalEnablementAndWaiver(t *testing.T) {
